@@ -1,16 +1,20 @@
 CXXFLAGS =-std=c++11 -Wall
-LDFLAGS  =-Wall
+LDFLAGS  =-Wall -Werror
 LDLIBS   =-lm
 
 .PHONY: clean all
 
-all: bin/sort
+all: bin/sort bin/generateRandomUint64File
 
 clean:
 	rm -rf build/
 	rm -rf bin/
 
 bin/sort: build/cli/sort.o
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+bin/generateRandomUint64File: build/cli/generateRandomUint64File.o
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
