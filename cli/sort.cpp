@@ -35,7 +35,9 @@ int main(int argc, const char* argv[]) {
     return 1;
   }
   memSize <<= 16; //convert Megabyte to Byte
-  std::cout << "Memory size: " << memSize << " Bytes" <<std::endl;
+  #ifdef DEBUG
+  std::clog << "Memory size: " << memSize << " Bytes" << std::endl;
+  #endif
   //open the input and output files
   int fdIn = open(argv[1], O_RDONLY);
   if(fdIn < 0) {
@@ -54,7 +56,9 @@ int main(int argc, const char* argv[]) {
     std::cerr << "unable to stat file '" << argv[1] << "': " << strerror(errno) << std::endl;
     return 1;
   }
-  std::cout << inStat.st_size << " Bytes" << std::endl;
+  #ifdef DEBUG
+  std::clog << "Size of input file: " << inStat.st_size << " Bytes" << std::endl;
+  #endif
   //call sort algorithm
   //close file descriptors
   if((ret = close(fdIn)) != 0) {
