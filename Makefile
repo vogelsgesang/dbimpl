@@ -20,6 +20,10 @@ LDLIBS   =-lm
 .PHONY: all
 all: bin/sort$(BIN_POSTFIX) bin/generateRandomUint64File$(BIN_POSTFIX)
 
+.PHONY: test
+test:
+	@echo "So far there are no test cases..."
+
 .PHONY: clean
 clean:
 	rm -rf build/

@@ -1,5 +1,7 @@
 #DB-Impl
 
+[![Build Status](https://travis-ci.org/vogelsgesang/dbimpl.svg?branch=master)](https://travis-ci.org/vogelsgesang/dbimpl)
+
 This repository contains the solutions for the homeworks of the course [Database Systems on Modern CPU Architectures](http://www-db.in.tum.de/teaching/ss15/moderndbs/).
 
 ##Building
