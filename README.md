@@ -23,7 +23,7 @@ For the first assignment an external sort algorithm had to be implemented. We ch
 
 `od` can be used in order to inspect the contents of a file.
 
-``
+```
 od -A n -t x2 -v <fileName> #create a hex dump
 od -A n -t u8 -v <fileName> #print the file as uint_64t
-``
+```
