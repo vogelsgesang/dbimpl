@@ -11,7 +11,7 @@ ifeq ($(BUILD_TYPE), debug)
   BIN_POSTFIX=_debug
 endif
 
-CXXFLAGS =-std=c++11 -Wall -Werror
+CXXFLAGS =-std=c++11 -Wall -Werror -I.
 DEBUG_CXXFLAGS=-g3 -DDEBUG -O0
 RELEASE_CXXFLAGS=-O3
 LDFLAGS  =-Wall -Werror
@@ -33,7 +33,7 @@ clean:
 # the actual binaries
 #####################
 
-bin/sort$(BIN_POSTFIX): build/$(BUILD_TYPE)/cli/sort.o
+bin/sort$(BIN_POSTFIX): build/$(BUILD_TYPE)/cli/sort.o build/$(BUILD_TYPE)/sorting/externalSort.o
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 

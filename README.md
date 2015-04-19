@@ -14,3 +14,16 @@ You can create a release build using `make`. For the debug build enter `make BUI
 
 The binaries will be created in the `bin/` folder.
 Executables built with the debugging flags will have the `_debug` suffix.
+
+##External sorting
+
+For the first assignment an external sort algorithm had to be implemented. We chose to implement a merge sort algorithm.
+
+##Useful shell commands
+
+`od` can be used in order to inspect the contents of a file.
+
+``
+od -A n -t x2 -v <fileName> #create a hex dump
+od -A n -t u8 -v <fileName> #print the file as uint_64t
+``

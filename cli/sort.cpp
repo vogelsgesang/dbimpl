@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "sorting/externalSort.h"
 
 void printHelp();
 
@@ -29,14 +30,18 @@ int main(int argc, const char* argv[]) {
     std::cerr << "unable to parse memory size: " << std::strerror(errno) << std::endl;
     return 1;
   }
+  if(memSize <= 0) {
+    std::cerr << "memory size <= 0" << std::endl;
+    return 1;
+  }
   //avoid overflows
   if(memSize & (0xffffL << 48)) {
-    std::cerr << "memory size too big: an overflow would occurr" << std::endl;
+    std::cerr << "memory size too big: an overflow would occur" << std::endl;
     return 1;
   }
   memSize <<= 16; //convert Megabyte to Byte
   #ifdef DEBUG
-  std::clog << "Memory size: " << memSize << " Bytes" << std::endl;
+  std::clog << "memory size: " << memSize << " Bytes" << std::endl;
   #endif
   //open the input and output files
   int fdIn = open(argv[1], O_RDONLY);
@@ -44,7 +49,7 @@ int main(int argc, const char* argv[]) {
     std::cerr << "unable to open file '" << argv[1] << "': " << strerror(errno) << std::endl;
     return 1;
   }
-  int fdOut = open(argv[2], O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
+  int fdOut = open(argv[2], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
   if(fdOut < 0) {
     std::cerr << "unable to open file '" << argv[2] << "': " << strerror(errno) << std::endl;
     return 1;
@@ -56,10 +61,13 @@ int main(int argc, const char* argv[]) {
     std::cerr << "unable to stat file '" << argv[1] << "': " << strerror(errno) << std::endl;
     return 1;
   }
+  uint64_t nrIntegers = inStat.st_size/sizeof(uint64_t);
   #ifdef DEBUG
-  std::clog << "Size of input file: " << inStat.st_size << " Bytes" << std::endl;
+  std::clog << "size of input file: " << inStat.st_size << " Bytes" << std::endl;
+  std::clog << "number of uint64_t integers: " << nrIntegers << std::endl;
   #endif
   //call sort algorithm
+  dbImpl::externalSort(fdIn, nrIntegers, fdOut, memSize);
   //close file descriptors
   if((ret = close(fdIn)) != 0) {
     std::cerr << "unable to close file '" << argv[1] << "': " << strerror(errno) << std::endl;
