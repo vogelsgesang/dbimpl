@@ -1,11 +1,11 @@
 #include <iostream>
-#include <vector>
 #include <cstring>
 #include <cerrno>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <memory>
 #include <algorithm>
 
 #include "externalSort.h"
@@ -22,7 +22,7 @@ void checkedPwrite(int fd, void* buf, size_t count, off_t offset);
 void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
   /*
    * implementation decisions:
-   *  * std::vector is not used, since std::vector initializes its memory with 0 and
+   *  * std::vector is avoided, since std::vector initializes its memory with 0 and
    *    this initialization would be useless overhead
    *  * all file accesses are done using the preferred block size as reported by fstat
    *  * posix_fadvise is used to give hints for tuning
@@ -59,11 +59,10 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
       std::cerr << "unable to allocate disk space: " << strerror(ret);
       exit(1);
     }
-    std::vector<uint64_t> run;
-    run.resize(usedMemory / sizeof(uint64_t));
+    std::unique_ptr<uint64_t[]> run(new uint64_t[usedMemory / sizeof(uint64_t)]);
     uint64_t elementsProcessed = 0;
     while(elementsProcessed < size) {
-      uint64_t runSize = std::min(size - elementsProcessed, run.size());
+      uint64_t runSize = std::min(size - elementsProcessed, usedMemory / sizeof(uint64_t));
       uint64_t offset = elementsProcessed * sizeof(uint64_t);
       uint64_t runBytes = runSize * sizeof(uint64_t);
       #ifdef DEBUG
