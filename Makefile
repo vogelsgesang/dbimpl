@@ -33,7 +33,8 @@ clean:
 # the actual binaries
 #####################
 
-bin/sort$(BIN_POSTFIX): build/$(BUILD_TYPE)/cli/sort.o build/$(BUILD_TYPE)/sorting/externalSort.o
+SORT_OBJS=cli/sort.o sorting/externalSort.o utils/checkedIO.o
+bin/sort$(BIN_POSTFIX): $(addprefix build/$(BUILD_TYPE)/, $(SORT_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
