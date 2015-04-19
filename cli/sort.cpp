@@ -35,11 +35,11 @@ int main(int argc, const char* argv[]) {
     return 1;
   }
   //avoid overflows
-  if(memSize & (0xffffL << 48)) {
+  if(memSize & (0xfffffL << 44)) {
     std::cerr << "memory size too big: an overflow would occur" << std::endl;
     return 1;
   }
-  memSize <<= 16; //convert Megabyte to Byte
+  memSize <<= 20; //convert Megabyte to Byte
   #ifdef DEBUG
   std::clog << "memory size: " << memSize << " Bytes" << std::endl;
   #endif
