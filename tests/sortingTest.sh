@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-BINDIR=`realpath "$(dirname "${BASH_SOURCE[0]}")/../bin/"`
+BINDIR=`readlink -f "$(dirname "${BASH_SOURCE[0]}")/../bin/"`
 SORT="$BINDIR/sort"
 GENERATE="$BINDIR/generateRandomUint64File"
 
