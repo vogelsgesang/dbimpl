@@ -15,6 +15,19 @@ You can create a release build using `make`. For the debug build enter `make BUI
 The binaries will be created in the `bin/` folder.
 Executables built with the debugging flags will have the `_debug` suffix.
 
+##Testing
+
+There are two types of test cases:
+
+* GoogleTest tests: use these tests for unit and integration tests. All files in the directory `tests/` and its subdirectory, with a name which matches `*Test.cpp`,
+  are automatically compiled and added to the test suite. The compiled testsuite will be named `bin/runTests` respectively `bin/runTests_debug`.
+* scripted tests: these tests intended for testing the commands provided to bash scripts. Test scripts must be placed in the `tests/` directory and their name
+  must match `*Test.sh`.
+
+`make test` executes both types of tests.
+All test cases are automatically executed by the continous integration service [TravisCI](https://travis-ci.org/vogelsgesang/dbimpl) as soon as new commits are pushed.
+Nevertheless, always test your commits before pushing them!
+
 ##External sorting
 
 For the first assignment an external sort algorithm had to be implemented. We chose to implement a merge sort algorithm.

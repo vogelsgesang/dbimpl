@@ -11,6 +11,9 @@ CXXFLAGS =-std=c++11 -Wall -Werror
 LDFLAGS  =-Wall -Werror
 LDLIBS   =-lm
 
+# Points to the root of Google Test, relative to where this file is.
+GTEST_DIR = lib/gtest-1.7.0
+
 # possible values: "build", "release"
 BUILD_TYPE=release
 ifeq ($(BUILD_TYPE), debug)
@@ -28,12 +31,14 @@ endif
 OBJ_DIR=build/$(BUILD_TYPE)
 
 .PHONY: all
-all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File)
+all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests)
 
 .PHONY: test
-test:
-	@echo "Executing test scripts"
-	@for SCRIPT in `find tests/ -name *Test.sh` ; do \
+test: all
+	@echo "=== Executing GoogleTest tests ==="
+	@./bin/runTests$(BIN_SUFFIX)
+	@echo "=== Executing test scripts ==="
+	@for SCRIPT in `find tests/ -name *Test.sh -type f` ; do \
 			echo -n "executing '$$SCRIPT' ... "; \
 			$$SCRIPT; \
 			if [ $$? -ne 0 ]; then \
@@ -62,6 +67,15 @@ bin/generateRandomUint64File$(BIN_SUFFIX): $(OBJ_DIR)/cli/generateRandomUint64Fi
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
+RUNTESTS_OBJS=gtest_main.a $(patsubst %.cpp, %.o, $(shell find tests/ -iname *Test.cpp -type f))
+bin/runTests$(BIN_SUFFIX): CPPFLAGS+= -isystem $(GTEST_DIR)/include
+bin/runTests$(BIN_SUFFIX): LDFLAGS+= -pthread
+#the dependency on the _directory_ containing the test specifications is neccessary in
+#order to handle deleted files correctly
+bin/runTests$(BIN_SUFFIX): tests $(addprefix $(OBJ_DIR)/, $(RUNTESTS_OBJS))
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $(filter-out tests, $^) $(LDLIBS) -o $@
+
 ######################
 # general rules
 ######################
@@ -71,16 +85,33 @@ $(OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/gtest-main.o: $(GTEST_SRCS_)
+#######################
+#rules for GTest
+######################
+GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
+                $(GTEST_DIR)/include/gtest/internal/*.h
+GTEST_SRCS_ = $(GTEST_DIR)/src/*.cc $(GTEST_DIR)/src/*.h $(GTEST_HEADERS)
+
+$(OBJ_DIR)/gtest-all.o: $(GTEST_SRCS_)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) -I$(GTEST_DIR) $(CXXFLAGS) -c \
             $(GTEST_DIR)/src/gtest-all.cc -o $@
 
+$(OBJ_DIR)/gtest_main.o : $(GTEST_SRCS_)
+	@mkdir -p $(dir $@)
+	$(CXX) $(CPPFLAGS) -I$(GTEST_DIR) $(CXXFLAGS) -c \
+            $(GTEST_DIR)/src/gtest_main.cc -o $@
+
+$(OBJ_DIR)/gtest_main.a: $(OBJ_DIR)/gtest-all.o $(OBJ_DIR)/gtest_main.o
+	$(AR) $(ARFLAGS) $@ $^
+
+############################
 #automatically generate Make rules for the included header files
+############################
 build/deps/%.d: %.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MF $@ -MM -MP -MT $@ -MT $(basename $@).o $<
 
 #include these make rules
-DEPFILES=$(patsubst %.cpp, build/deps/%.d, $(wildcard **/*.cpp))
+DEPFILES=$(patsubst %.cpp, build/deps/%.d, $(filter-out lib/%, $(wildcard **/*.cpp)))
 -include $(DEPFILES)

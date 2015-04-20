@@ -1,8 +1,9 @@
 language: cpp
 compiler: g++
-install:
-  - export CXX=g++-4.8
-script: make && make test
+install: export CXX=g++-4.8
+script:
+  - make
+  - make test
 addons:
   apt:
     sources:
