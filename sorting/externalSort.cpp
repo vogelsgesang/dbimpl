@@ -16,11 +16,12 @@
 namespace dbImpl {
 
 //holds informations about a run of sorted numbers
-struct runDescriptor {
-  off_t offset; //offset from start of file in bytes
-  size_t size; //lenght of the run in number of elements
+class RunDescriptor {
+  public:
+    uint64_t offset; //offset from start of file in bytes
+    size_t size; //lenght of the run in number of elements
 };
-typedef std::vector<runDescriptor> runList;
+typedef std::vector<RunDescriptor> RunList;
 
 //forms runs of sorted numbers
 //the input numbers are read from the file descriptor fdInput.
@@ -28,14 +29,23 @@ typedef std::vector<runDescriptor> runList;
 //the runs are stored in fdOutput.
 //memSize gives the amount of memory to be used.
 //a list of runDescriptors will be returned.
-runList formRuns(int fdInput, uint64_t size, int fdOutput, uint64_t memSize);
+RunList formRuns(int fdInput, uint64_t size, int fdOutput, uint64_t memSize);
 //merges runs of sorted numbers
 //returns the descriptor for the resulting run
-runDescriptor mergeRuns(const runList& runs, int fd, uint64_t runsMergedPerSweep);
+RunDescriptor mergeRuns(RunList runs, int fd, uint64_t size, uint64_t memSize, uint64_t blockSize);
+
+//returns the quotient of the parameters.
+//In contrast to normal integer arithmetics, the result will be rounded towards infinity
+uint64_t divideRoundingUp(uint64_t dividend, uint64_t divisor);
+//returns the smallest number greater than num which can be divided by
+//alignment without remainder
+uint64_t padTo(uint64_t num, uint64_t alignment);
 
 void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
   /*
    * implementation decisions:
+   *  * the output file will be used as scratch space. It is twice as large as neccessary.
+   *    In the merging phase, the data will be copied repeatedly between both halfs.
    *  * std::vector is avoided for holding the uint64_t elements since std::vector
    *    initializes its memory with 0 and this initialization would be useless overhead
    *  * all file accesses are done using the preferred block size as reported by fstat
@@ -67,12 +77,21 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
     exit(1);
   }
 
+  //preallocate disk space
+  if(int ret = posix_fallocate(fdOutput, 0, 2 * padTo(size*sizeof(uint64_t), blockSize))) {
+    std::cerr << "unable to allocate disk space: " << strerror(ret);
+    exit(1);
+  }
+
   //form sorted runs
-  runList runs = formRuns(fdInput, size, fdOutput, memSize);
+  RunList runs = formRuns(fdInput, size, fdOutput, memSize);
 
   //merge runs
-  uint64_t runsMergedPerSweep = blocksInMemory-1;
-  runDescriptor mergedRun = mergeRuns(runs, fdOutput, runsMergedPerSweep);
+  RunDescriptor mergedRun = mergeRuns(runs, fdOutput, size, memSize, blockSize);
+  #ifdef DEBUG
+  std::clog << "merged run" << std::endl;
+  std::clog << "offset: " << mergedRun.offset << ", size: " << mergedRun.size << std::endl;
+  #endif
 
   //truncate the output file so it only contains the mergedRun
   #ifdef DEBUG
@@ -96,21 +115,19 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
       offset += chunkSize;
     }
   }
-  if(ftruncate(fdOutput, mergedRun.size) != 0) {
+  if(ftruncate(fdOutput, mergedRun.size*sizeof(uint64_t)) != 0) {
     std::cerr << "unable to truncate output file: " << strerror(errno) << std::endl;
     exit(1);
   }
 }
 
-runList formRuns(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
-  runList runs;
+RunList formRuns(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
   #ifdef DEBUG
   std::clog << "forming runs..." << std::endl;
   #endif
-  if(int ret = posix_fallocate(fdOutput, 0, size * sizeof(uint64_t))) {
-    std::cerr << "unable to allocate disk space: " << strerror(ret);
-    exit(1);
-  }
+  //preallocate the list of runs
+  RunList runs;
+  runs.reserve(divideRoundingUp(size, memSize/sizeof(uint64_t)));
   posix_fadvise(fdInput, 0, size*sizeof(uint64_t), POSIX_FADV_SEQUENTIAL);
   std::unique_ptr<uint64_t[]> run(new (std::nothrow) uint64_t[memSize / sizeof(uint64_t)]);
   if(!run) {
@@ -120,28 +137,195 @@ runList formRuns(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
   uint64_t elementsProcessed = 0;
   while(elementsProcessed < size) {
     size_t runSize = std::min(size - elementsProcessed, memSize / sizeof(uint64_t));
-    off_t offset = elementsProcessed * sizeof(uint64_t);
+    uint64_t offset = elementsProcessed * sizeof(uint64_t);
     size_t runBytes = runSize * sizeof(uint64_t);
     checkedPread(fdInput, &run[0], runBytes, offset);
     std::sort(&run[0], &run[runSize]);
     checkedPwrite(fdOutput, &run[0], runBytes, offset);
     posix_fadvise(fdInput, offset, runBytes, POSIX_FADV_DONTNEED);
-    runs.push_back({.offset = offset, .size = runSize});
+    runs.push_back({offset, runSize});
     elementsProcessed += runSize;
   }
   return runs;
 }
 
-runDescriptor mergeRuns(const runList& runs, int fd, uint64_t runsMergedPerSweep) {
-  #ifdef DEBUG
-  std::clog << "merging runs..." << std::endl;
-  #endif
-  //necessary for avoiding "unused parameters" compiler warning...
-  int unused = fd + runsMergedPerSweep;
-  runs[unused];
-  //for now, simply return the last run
-  return runs.back();
-  //TODO: implement the merge phase
+//an element of the priority queue used for merging the runs
+struct MergeQueueElement {
+  uint64_t value;
+  uint64_t bufferNr;
+
+  bool operator> (const MergeQueueElement& rhs) const {
+    return this->value > rhs.value;
+  }
+};
+
+//represents a sequence of numbers laying on disk
+//it provides a simple possibility to read the run sequentially and takes care of buffer managment
+class SequenceReader {
+  public:
+    //bufferSize is measured in sizeof(uint64_t)
+    SequenceReader(int fd, RunDescriptor run, uint64_t bufferSize)
+      : fd(fd),
+        fileOffset(run.offset),
+        runSize(run.size),
+        elementsProcessed(0),
+        buffer(new uint64_t[bufferSize]),
+        bufferSize(bufferSize),
+        bufferOffset(0)
+    {
+      readBlockFromDisk();
+    }
+
+    bool empty() {
+      return elementsProcessed >= runSize;
+    }
+
+    uint64_t consumeElement() {
+      if(empty()) {
+        std::cerr << "reading past the end of a run" << std::endl;
+        abort();
+      }
+      //load new elements from run
+      if(bufferOffset >= bufferSize) {
+        readBlockFromDisk();
+      }
+      //return next element
+      uint64_t value = buffer[bufferOffset];
+      bufferOffset++;
+      elementsProcessed++;
+      return value;
+    }
+
+  private:
+    int fd;
+    uint64_t fileOffset; //the current offset within the file in bytes
+    uint64_t runSize; //the size of this run in uint64_t
+    uint64_t elementsProcessed; //how many elements where already processed
+    std::unique_ptr<uint64_t[]> buffer;
+    uint64_t bufferSize; //the size of the buffer in uint64_t
+    uint64_t bufferOffset; //the buffer offset in uint64_t
+
+    void readBlockFromDisk() {
+      uint64_t remainingElements = runSize - elementsProcessed;
+      uint64_t bytesToLoad = std::min(remainingElements, bufferSize) * sizeof(uint64_t); 
+      checkedPread(fd, &buffer[0], bytesToLoad, fileOffset);
+      fileOffset += bytesToLoad;
+      bufferOffset = 0;
+    }
+};
+
+
+class SequenceWriter {
+  public:
+    //offset is measured in bytes; bufferSize is measured in sizeof(uint64_t)
+    SequenceWriter(int fd, uint64_t fileOffset, uint64_t bufferSize)
+      : fd(fd),
+        fileOffset(fileOffset),
+        buffer(new uint64_t[bufferSize]),
+        bufferSize(bufferSize),
+        bufferOffset(0),
+        descriptor({.offset = fileOffset, .size = 0})
+      {}
+
+    //appends an element to the buffer and flushes the buffer if it is full
+    void append(uint64_t value) {
+      buffer[bufferOffset] = value;
+      bufferOffset++;
+      descriptor.size++;
+      if(bufferOffset >= bufferSize) {
+        flush();
+      }
+    }
+
+    //flushes the buffer
+    void flush() {
+      checkedPwrite(fd, &buffer[0], bufferSize*sizeof(uint64_t), fileOffset);
+      fileOffset += bufferSize*sizeof(uint64_t);
+      bufferOffset = 0;
+    }
+
+    RunDescriptor getRunDescriptor() {
+      return descriptor;
+    }
+
+  private:
+    int fd;
+    uint64_t fileOffset; //the file offset in bytes
+    std::unique_ptr<uint64_t[]> buffer;
+    uint64_t bufferSize; //the size of the buffer in uint64_t
+    uint64_t bufferOffset; //the buffer offset in uint64_t
+    RunDescriptor descriptor;
+};
+
+RunDescriptor mergeRuns(RunList runs, int fd, uint64_t size, uint64_t memSize, uint64_t blockSize) {
+  uint64_t blocksInMemory = memSize/blockSize;
+  uint64_t bufferSize = blockSize/sizeof(uint64_t);
+  //one block will be occupied by the output buffer. All other blocks are input buffers
+  uint64_t runsMergedPerSweep = blocksInMemory-1;
+  //the queue used for ordering
+  std::priority_queue<MergeQueueElement, std::vector<MergeQueueElement>, std::greater<MergeQueueElement>> queue;
+  RunList mergedRuns;
+  mergedRuns.reserve(divideRoundingUp(runs.size(), runsMergedPerSweep));
+  //repeatedly merge runs until only one run remains
+  while(runs.size() > 1) {
+    //the offset within the file at which the scratch space starts
+    uint64_t outputStartOffset;;
+    if(runs.front().offset == 0) {
+      outputStartOffset = padTo(size * sizeof(uint64_t), blockSize);
+    } else {
+      outputStartOffset = 0;
+    }
+    uint64_t runOffset = 0;
+    while(runOffset < runs.size()) {
+      //prepare output buffer
+      SequenceWriter outBuffer(fd, outputStartOffset, bufferSize);
+      //load buffers, fill queue
+      std::vector<SequenceReader> readers;
+      readers.reserve(runsMergedPerSweep);
+      for(uint64_t bufferNr = 0; bufferNr < runsMergedPerSweep && runOffset + bufferNr < runs.size(); ++bufferNr) {
+        uint64_t runNr = runOffset + bufferNr;
+        readers.emplace_back(fd, runs[runNr], bufferSize);
+        queue.push({readers.back().consumeElement(), bufferNr});
+      }
+      #ifdef DEBUG
+      std::clog << "merging runs " << runOffset << ".." << runOffset + readers.size() << std::endl;
+      #endif
+      //sort until all input runs are exhausted
+      while(!queue.empty()) {
+        const auto elem = queue.top();
+        queue.pop();
+        const auto value = elem.value;
+        const auto bufferNr = elem.bufferNr;
+        //add element to output buffer
+        outBuffer.append(value);
+        //load new elements from run
+        if(!readers[bufferNr].empty()) {
+          uint64_t newValue = readers[bufferNr].consumeElement();
+          queue.push({newValue, bufferNr});
+        }
+      }
+      //write the remaining output buffer
+      outBuffer.flush();
+      //update offsets and add descriptors
+      outputStartOffset += padTo(outBuffer.getRunDescriptor().size, blockSize);
+      mergedRuns.push_back(outBuffer.getRunDescriptor());
+      runOffset += readers.size();
+    }
+    //swap runs and mergedRuns
+    runs.swap(mergedRuns);
+    mergedRuns.clear();
+  }
+  //return the one remaining run
+  return runs[0];
+}
+
+uint64_t divideRoundingUp(uint64_t dividend, uint64_t divisor) {
+  //by using 1+ ... -1 the division rounds towards infinity
+  return 1 + (dividend-1)/divisor;
+}
+
+uint64_t padTo(uint64_t num, uint64_t alignment) {
+  return divideRoundingUp(num, alignment) * alignment;
 }
 
 } //namespace dbImpl

@@ -19,11 +19,18 @@ Executables built with the debugging flags will have the `_debug` suffix.
 
 For the first assignment an external sort algorithm had to be implemented. We chose to implement a merge sort algorithm.
 
-##Useful shell commands
+###Useful shell commands
 
 `od` can be used in order to inspect the contents of a file.
 
 ```
 od -A n -t x2 -v <fileName> #create a hex dump
 od -A n -t u8 -v <fileName> #print the file as uint_64t
+od -A n -t u8 -w8 -v <fileName> #print the file as uint_64t, one uint64_t per line
+```
+
+You can combine `od` with `sort` in order to sort the values in a file:
+
+```
+od -A n -t u8 -w8 -v <fileName> | sort -n
 ```
