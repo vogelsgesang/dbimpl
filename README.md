@@ -19,10 +19,10 @@ Executables built with the debugging flags will have the `_debug` suffix.
 
 There are two types of test cases:
 
-* GoogleTest tests: use these tests for unit and integration tests. All files in the directory `tests/` and its subdirectory, with a name which matches `*Test.cpp`,
+* GoogleTest tests: use these tests for unit and integration tests. All files with a name which matches `*Test.cpp` in the directory `tests/` and its subdirectories
   are automatically compiled and added to the test suite. The compiled testsuite will be named `bin/runTests` respectively `bin/runTests_debug`.
-* scripted tests: these tests intended for testing the commands provided to bash scripts. Test scripts must be placed in the `tests/` directory and their name
-  must match `*Test.sh`.
+* scripted tests: these tests are intended for testing the commands provided to bash scripts. Test scripts must be placed in the `tests/` directory or one of its subdirectories
+  and their name must match `*Test.sh`.
 
 `make test` executes both types of tests.
 All test cases are automatically executed by the continous integration service [TravisCI](https://travis-ci.org/vogelsgesang/dbimpl) as soon as new commits are pushed.
