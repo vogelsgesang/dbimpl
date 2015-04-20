@@ -22,7 +22,17 @@ all: bin/sort$(BIN_POSTFIX) bin/generateRandomUint64File$(BIN_POSTFIX)
 
 .PHONY: test
 test:
-	@echo "So far there are no test cases..."
+	@echo "Executing test scripts"
+	@for SCRIPT in `find tests/ -name *Test.sh` ; do \
+			echo -n "executing '$$SCRIPT' ... "; \
+			$$SCRIPT; \
+			if [ $$? -ne 0 ]; then \
+				echo "failed" ; \
+				exit 1; \
+			else \
+				echo "passed"; \
+			fi \
+		done;
 
 .PHONY: clean
 clean:
