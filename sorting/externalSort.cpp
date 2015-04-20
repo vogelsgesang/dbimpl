@@ -51,6 +51,9 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
    *  * all file accesses are done using the preferred block size as reported by fstat
    *  * posix_fadvise is used to give hints for tuning disk accesses
    */
+  //return immediately if size is 0 since there is no work to be done
+  //posix_fallocate could not handle a size of 0
+  if(size <= 0) return;
   //calculate block sizes, nr. of blocks, ...
   struct stat inStat;
   if(fstat(fdOutput, &inStat) != 0) {
@@ -79,7 +82,7 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
 
   //preallocate disk space
   if(int ret = posix_fallocate(fdOutput, 0, 2 * padTo(size*sizeof(uint64_t), blockSize))) {
-    std::cerr << "unable to allocate disk space: " << strerror(ret);
+    std::cerr << "unable to allocate disk space: " << strerror(ret) << std::endl;
     exit(1);
   }
 
