@@ -18,12 +18,13 @@ GTEST_DIR = lib/gtest-1.7.0
 BUILD_TYPE=release
 ifeq ($(BUILD_TYPE), debug)
   BIN_SUFFIX=_debug
-	CPP_FLAGS+= -DDEBUG
-	CXX_FLAGS+= -g3 -O0
+	CPPFLAGS+= -DDEBUG
+	CXXFLAGS+= -g3 -O0
 else
 	ifeq ($(BUILD_TYPE), release)
 		BIN_POSTFIX=
 		CXXFLAGS+=-O3
+		LDFLAGS+=-O3
 	else
 		$(error Invalid build type: "$(BUILD_TYPE)")
 	endif
