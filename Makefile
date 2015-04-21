@@ -31,7 +31,7 @@ endif
 OBJ_DIR=build/$(BUILD_TYPE)
 
 .PHONY: all
-all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests)
+all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted)
 
 .PHONY: test
 test: all
@@ -60,6 +60,11 @@ clean:
 
 SORT_OBJS=cli/sort.o sorting/externalSort.o utils/checkedIO.o
 bin/sort$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SORT_OBJS))
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+ISSORTED_OBJS=cli/isSorted.o sorting/isSorted.o utils/checkedIO.o
+bin/isSorted$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(ISSORTED_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 

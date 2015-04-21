@@ -6,9 +6,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "sorting/externalSort.h"
+#include "sorting/isSorted.h"
 
 
-//  bool isSorted(uint64_t size, int fdTest, uint64_t memSize);
 void printHelp();
 
 int main(int argc, const char* argv[]) {
@@ -65,19 +65,21 @@ int main(int argc, const char* argv[]) {
   std::clog << "number of uint64_t integers: " << nrIntegers << std::endl;
   #endif
   //call sort algorithm
-  dbImpl::isSorted(nrIntegers, fdIn, memSize);
-  //close file descriptors
+  bool isSorted = dbImpl::isSorted(nrIntegers, fdIn, memSize);
+  //close file
   if((ret = close(fdIn)) != 0) {
     std::cerr << "unable to close file '" << argv[1] << "': " << strerror(errno) << std::endl;
     return 1;
   }
-  if((ret = close(fdOut)) != 0) {
-    std::cerr << "unable to close file '" << argv[1] << "': " << strerror(errno) << std::endl;
-    return 1;
+  //print output status
+  if(isSorted) {
+    return 0;
+  } else {
+    return 2;
   }
 }
 
 void printHelp() {
   std::cerr << "Usage:" << std::endl
-            << "  isSorted <number of integers> <infile> <memoryBufferInMB>" << std::endl;
+            << "  isSorted <infile> <memoryBufferInMB>" << std::endl;
 }
