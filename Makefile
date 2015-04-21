@@ -7,7 +7,7 @@
 #   make test   - runs the test cases
 
 CPPFLAGS = -I .
-CXXFLAGS =-std=c++11 -Wall -Werror
+CXXFLAGS =-std=c++11 -Wall -Werror -pedantic
 LDFLAGS  =-Wall -Werror
 LDLIBS   =-lm
 
