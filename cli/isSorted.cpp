@@ -65,7 +65,7 @@ int main(int argc, const char* argv[]) {
   std::clog << "number of uint64_t integers: " << nrIntegers << std::endl;
   #endif
   //call sort algorithm
-  bool isSorted = dbImpl::isSorted(nrIntegers, fdIn, memSize);
+  bool isSorted = dbImpl::isSorted(fdIn, nrIntegers, memSize);
   //close file
   if((ret = close(fdIn)) != 0) {
     std::cerr << "unable to close file '" << argv[1] << "': " << strerror(errno) << std::endl;

@@ -10,7 +10,7 @@ namespace dbImpl {
   //`memSize` gives the bytes of available main memory and
   //`size` is the number of integers.
   // Returns true iff numbers are sorted properly.
-  bool isSorted(uint64_t size, int fdTest, uint64_t memSize);
+  bool isSorted(int fdTest, uint64_t size, uint64_t memSize);
 
 }
 #endif
