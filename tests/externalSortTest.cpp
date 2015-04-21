@@ -8,14 +8,17 @@
 #include <memory>
 #include <vector>
 #include <algorithm>
+#include <stdlib.h>
 
 #include "sorting/externalSort.h"
 
 void testSorting(std::vector<uint64_t> values, uint64_t memSize) {
+  char inFileName[] = "unsortedXXXXXX";
+  char outFileName[] = "sortedXXXXXX";
   //create temporary input and output files
-  int fdIn = open("/tmp", O_RDWR | O_TMPFILE, S_IRUSR | S_IWUSR);
+  int fdIn = mkstemp(inFileName);
   ASSERT_GE(fdIn, 0) << "unable to create input file: " << strerror(errno);
-  int fdOut = open("/tmp", O_RDWR | O_TMPFILE, S_IRUSR | S_IWUSR);
+  int fdOut = mkstemp(outFileName);
   ASSERT_GE(fdOut, 0) << "unable to create output file: " << strerror(errno);
 
   //store the input numbers into the input file
@@ -50,8 +53,11 @@ void testSorting(std::vector<uint64_t> values, uint64_t memSize) {
   //close both file descriptors
   //since they were created using O_TMPFILE, the files will be
   //deleted automatically
-  close(fdOut);
-  close(fdIn);
+  ASSERT_EQ(0, close(fdOut)) << strerror(errno);
+  ASSERT_EQ(0, close(fdIn)) << strerror(errno);
+  //unlink the files
+  ASSERT_EQ(0, unlink(inFileName)) << strerror(errno);
+  ASSERT_EQ(0, unlink(outFileName)) << strerror(errno);
 }
 
 TEST(ExternalSortTest, handlesEmptyInput) {
