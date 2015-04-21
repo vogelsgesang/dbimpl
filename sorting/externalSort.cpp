@@ -12,6 +12,8 @@
 
 #include "sorting/externalSort.h"
 #include "utils/checkedIO.h"
+#include "utils/sequenceReader.h"
+#include "utils/sequenceWriter.h"
 
 namespace dbImpl {
 
@@ -162,104 +164,6 @@ struct MergeQueueElement {
   }
 };
 
-//represents a sequence of numbers laying on disk
-//it provides a simple possibility to read the run sequentially and takes care of buffer managment
-class SequenceReader {
-  public:
-    //bufferSize is measured in sizeof(uint64_t)
-    SequenceReader(int fd, RunDescriptor run, uint64_t bufferSize)
-      : fd(fd),
-        fileOffset(run.offset),
-        runSize(run.size),
-        elementsProcessed(0),
-        buffer(new uint64_t[bufferSize]),
-        bufferSize(bufferSize),
-        bufferOffset(0)
-    {
-      readBlockFromDisk();
-    }
-
-    bool empty() {
-      return elementsProcessed >= runSize;
-    }
-
-    uint64_t consumeElement() {
-      if(empty()) {
-        std::cerr << "reading past the end of a run" << std::endl;
-        abort();
-      }
-      //load new elements from run
-      if(bufferOffset >= bufferSize) {
-        readBlockFromDisk();
-      }
-      //return next element
-      uint64_t value = buffer[bufferOffset];
-      bufferOffset++;
-      elementsProcessed++;
-      return value;
-    }
-
-  private:
-    int fd;
-    uint64_t fileOffset; //the current offset within the file in bytes
-    uint64_t runSize; //the size of this run in uint64_t
-    uint64_t elementsProcessed; //how many elements where already processed
-    std::unique_ptr<uint64_t[]> buffer;
-    uint64_t bufferSize; //the size of the buffer in uint64_t
-    uint64_t bufferOffset; //the buffer offset in uint64_t
-
-    void readBlockFromDisk() {
-      uint64_t remainingElements = runSize - elementsProcessed;
-      uint64_t bytesToLoad = std::min(remainingElements, bufferSize) * sizeof(uint64_t); 
-      checkedPread(fd, &buffer[0], bytesToLoad, fileOffset);
-      fileOffset += bytesToLoad;
-      bufferOffset = 0;
-    }
-};
-
-
-class SequenceWriter {
-  public:
-    //offset is measured in bytes; bufferSize is measured in sizeof(uint64_t)
-    SequenceWriter(int fd, uint64_t fileOffset, uint64_t bufferSize)
-      : fd(fd),
-        fileOffset(fileOffset),
-        buffer(new uint64_t[bufferSize]),
-        bufferSize(bufferSize),
-        bufferOffset(0),
-        descriptor({.offset = fileOffset, .size = 0})
-      {}
-
-    //appends an element to the buffer and flushes the buffer if it is full
-    void append(uint64_t value) {
-      buffer[bufferOffset] = value;
-      bufferOffset++;
-      descriptor.size++;
-      if(bufferOffset >= bufferSize) {
-        flush();
-      }
-    }
-
-    //flushes the buffer
-    void flush() {
-      checkedPwrite(fd, &buffer[0], bufferSize*sizeof(uint64_t), fileOffset);
-      fileOffset += bufferSize*sizeof(uint64_t);
-      bufferOffset = 0;
-    }
-
-    RunDescriptor getRunDescriptor() {
-      return descriptor;
-    }
-
-  private:
-    int fd;
-    uint64_t fileOffset; //the file offset in bytes
-    std::unique_ptr<uint64_t[]> buffer;
-    uint64_t bufferSize; //the size of the buffer in uint64_t
-    uint64_t bufferOffset; //the buffer offset in uint64_t
-    RunDescriptor descriptor;
-};
-
 RunDescriptor mergeRuns(RunList runs, int fd, uint64_t size, uint64_t memSize, uint64_t blockSize) {
   uint64_t blocksInMemory = memSize/blockSize;
   uint64_t bufferSize = blockSize/sizeof(uint64_t);
@@ -281,13 +185,13 @@ RunDescriptor mergeRuns(RunList runs, int fd, uint64_t size, uint64_t memSize, u
     uint64_t runOffset = 0;
     while(runOffset < runs.size()) {
       //prepare output buffer
-      SequenceWriter outBuffer(fd, outputStartOffset, bufferSize);
+      SequenceWriter<uint64_t> outBuffer(fd, outputStartOffset, bufferSize);
       //load buffers, fill queue
-      std::vector<SequenceReader> readers;
+      std::vector<SequenceReader<uint64_t>> readers;
       readers.reserve(runsMergedPerSweep);
       for(uint64_t bufferNr = 0; bufferNr < runsMergedPerSweep && runOffset + bufferNr < runs.size(); ++bufferNr) {
         uint64_t runNr = runOffset + bufferNr;
-        readers.emplace_back(fd, runs[runNr], bufferSize);
+        readers.emplace_back(fd, runs[runNr].offset, runs[runNr].size, bufferSize);
         queue.push({readers.back().consumeElement(), bufferNr});
       }
       #ifdef DEBUG
@@ -310,8 +214,8 @@ RunDescriptor mergeRuns(RunList runs, int fd, uint64_t size, uint64_t memSize, u
       //write the remaining output buffer
       outBuffer.flush();
       //update offsets and add descriptors
-      outputStartOffset += padTo(outBuffer.getRunDescriptor().size, blockSize);
-      mergedRuns.push_back(outBuffer.getRunDescriptor());
+      mergedRuns.push_back({outputStartOffset, outBuffer.getElementCount()});
+      outputStartOffset += padTo(outBuffer.getElementCount() * sizeof(uint64_t), blockSize);
       runOffset += readers.size();
     }
     //swap runs and mergedRuns
