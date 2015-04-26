@@ -4,8 +4,9 @@
 
 namespace dbImpl {
   
-  uint64_t TwoQ::evict() {
-    uint64_t evicted;
+  template<typename T>
+  T TwoQ<T>::evict() {
+    T evicted;
     if (!fifoQueue.empty()) {
       evicted = fifoQueue.back();
       fifoMap.erase(evicted);
@@ -21,8 +22,8 @@ namespace dbImpl {
     return evicted;
   }
   
-  // Return PageInfo??
-  void TwoQ::access(uint64_t pageId) {
+  template<typename T>
+  void TwoQ<T>::access(T pageId) {
     // Check if in memory
     
     auto it = lruMap.find(pageId);
@@ -51,7 +52,8 @@ namespace dbImpl {
     }
   }
   
-  bool TwoQ::empty() {
+  template<typename T>
+  bool TwoQ<T>::empty() {
     return lruQueue.empty() && fifoQueue.empty();
   }
   

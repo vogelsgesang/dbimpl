@@ -75,7 +75,7 @@ bin/generateRandomUint64File$(BIN_SUFFIX): $(OBJ_DIR)/cli/generateRandomUint64Fi
 
 RUNTESTS_OBJS=gtest_main.a $(patsubst %.cpp, %.o, $(shell find tests/ -iname *Test.cpp -type f)) \
               sorting/externalSort.o sorting/isSorted.o utils/checkedIO.o \
-              logic/sqlBool.o buffer/twoQ.o
+              logic/sqlBool.o
 bin/runTests$(BIN_SUFFIX): CPPFLAGS+= -isystem $(GTEST_DIR)/include
 bin/runTests$(BIN_SUFFIX): LDFLAGS+= -pthread
 #the dependency on the _directory_ containing the test specifications is neccessary in
