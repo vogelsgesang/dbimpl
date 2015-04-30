@@ -32,7 +32,7 @@ endif
 OBJ_DIR=build/$(BUILD_TYPE)
 
 .PHONY: all
-all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted)
+all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest)
 
 .PHONY: test
 test: all
@@ -70,6 +70,11 @@ bin/isSorted$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(ISSORTED_OBJS))
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 bin/generateRandomUint64File$(BIN_SUFFIX): $(OBJ_DIR)/cli/generateRandomUint64File.o
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+BUFFER_OBJS=buffer/bufferManager.o buffer/bufferFrame.o cli/buffertest.o
+bin/buffertest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BUFFER_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
