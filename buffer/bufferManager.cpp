@@ -70,7 +70,7 @@ namespace dbImpl {
       int offset = frame.pageId & offsetBitMask;
       
 #if __unix
-      posix_fallocate(fd, offset * PAGE_SIZE, PAGE_SIZE);
+      posix_fallocate(segmentFd, offset * PAGE_SIZE, PAGE_SIZE);
 #endif
       if (pwrite(segmentFd, frame.getData(), PAGE_SIZE, offset * PAGE_SIZE) == -1) {
         std::cerr << "error while writing segment " << segmentId << " to disk: " << strerror(errno) << std::endl;
