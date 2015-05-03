@@ -8,7 +8,7 @@
 
 CPPFLAGS = -I . -isystem lib/gtest-1.7.0/include
 CXXFLAGS =-std=c++11 -Wall -Werror -pedantic
-LDFLAGS  =-Wall -Werror
+LDFLAGS  =-Wall -Werror -pthread
 LDLIBS   =-lm
 
 # Points to the root of Google Test, relative to where this file is.
@@ -82,7 +82,6 @@ RUNTESTS_OBJS=gtest_main.a $(patsubst %.cpp, %.o, $(shell find tests/ -iname *Te
               sorting/externalSort.o sorting/isSorted.o utils/checkedIO.o \
               logic/sqlBool.o
 bin/runTests$(BIN_SUFFIX): CPPFLAGS+= -isystem $(GTEST_DIR)/include
-bin/runTests$(BIN_SUFFIX): LDFLAGS+= -pthread
 #the dependency on the _directory_ containing the test specifications is neccessary in
 #order to handle deleted files correctly
 bin/runTests$(BIN_SUFFIX): tests $(addprefix $(OBJ_DIR)/, $(RUNTESTS_OBJS))
