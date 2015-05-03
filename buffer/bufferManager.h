@@ -35,8 +35,8 @@ namespace dbImpl {
     std::unordered_map<uint64_t, int> segmentFds;
     // implementation of twoQ strategy
     TwoQ<uint64_t> twoQ;
-    // the global lock for the maps and the twoQ
-    std::mutex lock;
+    // the global mutex for the maps and the twoQ
+    std::mutex globalMutex;
   };
 }
 

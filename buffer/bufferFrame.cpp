@@ -7,15 +7,9 @@
 
 namespace dbImpl {
 
-  BufferFrame::BufferFrame(uint64_t pageId, int segmentFd) : pageId(pageId), segmentFd(segmentFd)   {
+  BufferFrame::BufferFrame(uint64_t pageId) : pageId(pageId) {
     pthread_rwlock_init(&latch, nullptr);
-    
-    // initially read data from disk
     data = malloc(PAGE_SIZE);
-    int offset = pageId & offsetBitMask;
-    if (pread(segmentFd, data, PAGE_SIZE, offset * PAGE_SIZE) == -1) {
-      std::cerr << "error while reading page " << pageId << ": errno " << errno << std::endl;
-    }
   }
 
   BufferFrame::~BufferFrame() {

@@ -14,17 +14,16 @@ namespace dbImpl {
       const BufferFrame& operator=(const BufferFrame&) = delete;
 
       uint64_t pageId;
-      // file descriptor for segment file, wherein page is stored
-      int segmentFd;
       
       // constructor
-      BufferFrame(uint64_t pageId, int segmentFd);
+      BufferFrame(uint64_t pageId);
       // destructor
       virtual ~BufferFrame();
       // returns data from page
       void* getData();
-      // locks frame with an write or read lock whether lock is exclusive or not
+      // locks this frame with a write or read lock
       void lock(bool exclusive);
+      void downgradeToReaderLock();
       // unlocks frame
       void unlock();
       
