@@ -6,7 +6,13 @@
 #include "pthread.h"
 
 namespace dbImpl {
+  //forward declaration of class BufferManager.
+  //Necessary for "friend class BufferManager".
+  //I could also include BufferManager.h but this increase hurt build time.
+  class BufferManager;
+
   class BufferFrame {
+    friend class BufferManager;
     public:
       //deleted copy constructor => non copyable
       BufferFrame(const BufferFrame&) = delete;
@@ -21,13 +27,17 @@ namespace dbImpl {
       virtual ~BufferFrame();
       // returns data from page
       void* getData();
+
       // locks this frame with a write or read lock
       void lock(bool exclusive);
-      void downgradeToReaderLock();
+      // tries to acquire the lock. does not block.
+      // returns true if the lock was acquired and false otherwise
+      bool tryLock(bool exclusive);
       // unlocks frame
       void unlock();
-      
+
     private:
+      bool dirty;
       // actual data
       void* data;
       // frame's lock

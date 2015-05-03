@@ -10,6 +10,7 @@ namespace dbImpl {
   BufferFrame::BufferFrame(uint64_t pageId) : pageId(pageId) {
     pthread_rwlock_init(&latch, nullptr);
     data = malloc(PAGE_SIZE);
+    dirty = false;
   }
 
   BufferFrame::~BufferFrame() {
@@ -27,6 +28,16 @@ namespace dbImpl {
     } else {
       pthread_rwlock_rdlock(&latch);
     }
+  }
+
+  bool BufferFrame::tryLock(bool exclusive) {
+    int ret;
+    if (exclusive) {
+      ret = pthread_rwlock_trywrlock(&latch);
+    } else {
+      ret = pthread_rwlock_tryrdlock(&latch);
+    }
+    return ret == 0;
   }
 
   void BufferFrame::unlock() {

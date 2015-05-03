@@ -13,11 +13,24 @@
 namespace dbImpl {
   
   BufferManager::BufferManager(uint64_t size) : size(size) {
+    //by reserving enough space in the map, we can be sure that no
+    //rehash will ever be necessary. Hence, we can store iterators
+    //to this unordered_map safely without any iterator being invalidated.
     frames.reserve(size);
   }
   
   BufferManager::~BufferManager() {
-    frames.clear();
+    //flush all dirty pages
+    for(auto& frameEntry: frames) {
+      BufferFrame& frame = frameEntry.second;
+      if(frame.dirty) {
+          int segmentId = frame.pageId << segmentBits;
+          int segmentFd = segmentFds.at(segmentId);
+          int offset = (frame.pageId & offsetBitMask)*PAGE_SIZE;
+          dbImpl::checkedPwrite(segmentFd, frame.getData(), PAGE_SIZE, offset);
+      }
+    }
+    //close all files
     for (auto segment: segmentFds) {
       close(segment.second);
     }
@@ -28,15 +41,50 @@ namespace dbImpl {
     twoQ.access(pageId);
     
     if (frames.count(pageId) == 0) { // page is not in buffer
-      if (frames.size() >= size) {  // buffer is already full
+      while (frames.size() >= size) {
+        // buffer is already full
+        // a simple if is not enough since we need to release the global
+        // lock during flushing the evicted pages' content to disk and
+        // another thread might slip in and occupy the slot which was just
+        // freed.
+        //
         // get next page to evict from twoQ
+        // TODO: twoQ and own map might get out of sync if evicting fails (see below)
         uint64_t evictedPage = twoQ.evict();
         auto frameIt = frames.find(evictedPage);
+        BufferFrame& frame = frameIt->second;
         // before deleting the frame, we need to get an exclusive lock on it
-        frameIt->second.lock(true);
-        // delete reference from hash table
-        // the destructor of the BufferFrame will free the memory
-        frames.erase(evictedPage);
+        frame.lock(true); //TODO: exception safe locking...
+        // do we need to flush it?
+        if(!frame.dirty) {
+          // page is not dirty
+          frames.erase(evictedPage);
+        } else {
+          // page IS dirty and needs to be flushed
+          int segmentId = frame.pageId << segmentBits;
+          int segmentFd = segmentFds.at(segmentId);
+          int offset = (frame.pageId & offsetBitMask)*PAGE_SIZE;
+          //release the global lock, write the page, acquire the global lock
+          globalLock.unlock();
+          dbImpl::checkedPwrite(segmentFd, frame.getData(), PAGE_SIZE, offset);
+          //Maybe we actually fail evicting this page (see below), so we
+          //better mark it as pristine to avoid flushing it multiple times
+          frame.dirty = false;
+          //we can not simply acquire the global lock again, since otherwise
+          //we would acquire the locks in the wrong order. Instead, we first must
+          //unlock the page and then get the global lock.
+          frame.unlock();
+          //No locks are held here. (1)
+          globalLock.lock();
+          //At point (1) we do not hold any locks. Another thread might use the
+          //frame which we are currently trying to evict during this time. If this
+          //happens, we simply try to evict another frame.
+          //Only try to lock the frame. If it fails, another thread is already using
+          //this frame again.
+          if(frame.tryLock(true) && !frame.dirty) {
+            frames.erase(evictedPage);
+          }
+        }
       }
 
       // insert page into unordered_map
@@ -110,20 +158,7 @@ namespace dbImpl {
   }
   
   void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
-    //TODO: access to segmentFds should be guarded by a lock...
-    //      but this issue will be fixed anyway by writing the disks
-    //      back to disk when they are evicted instead of unfixed
-    if (isDirty) { // if page is dirty, write it to disk
-      int segmentId = frame.pageId << segmentBits;
-      int segmentFd = segmentFds.at(segmentId);
-      int offset = frame.pageId & offsetBitMask;
-      
-      #if __unix
-      posix_fallocate(segmentFd, offset * PAGE_SIZE, PAGE_SIZE);
-      #endif
-      dbImpl::checkedPwrite(segmentFd, frame.getData(), PAGE_SIZE, offset*PAGE_SIZE);
-    }
-
+    frame.dirty |= isDirty;
     frame.unlock();
   }
   
