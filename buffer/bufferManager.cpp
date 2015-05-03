@@ -5,7 +5,10 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <system_error>
+#include <boost/format.hpp>
 #include "buffer/definitions.h"
+#include "utils/checkedIO.h"
 
 namespace dbImpl {
   
@@ -33,17 +36,23 @@ namespace dbImpl {
       }
       uint64_t segmentId = pageId >> segmentBits;
       int segmentFd;
-      
+
       if (segmentFds.count(segmentId) == 1) { // segment file exists
         segmentFd = segmentFds.at(segmentId);
       } else { // segment file does not exist
         // create segment directory
         if (mkdir("segments", S_IRWXU) == -1 && errno != 17) {
-          std::cerr << "error while creating directory " << pageId << ": errno " << errno << std::endl;
+          int occurredErrno = errno;
+          errno = 0; //reset, so that later calls can succeed
+          throw std::system_error(std::error_code(occurredErrno, std::system_category()), "unable to create directory \"segments\"");
         }
         segmentFd = open(("segments/" + std::to_string(segmentId)).c_str(), O_RDWR | O_CREAT, S_IRUSR|S_IWUSR);
         if (segmentFd == -1) {
-          std::cerr << "error while opening segment " << segmentId << ": errno " << errno << std::endl;
+          int occurredErrno = errno;
+          errno = 0; //reset, so that later calls can succeed
+          boost::format fmt("unable to open segment %1%");
+          fmt % segmentId;
+          throw std::system_error(std::error_code(occurredErrno, std::system_category()), fmt.str());
         }
         segmentFds[segmentId] = segmentFd;
       }
@@ -69,12 +78,10 @@ namespace dbImpl {
       int segmentFd = segmentFds.at(segmentId);
       int offset = frame.pageId & offsetBitMask;
       
-#if __unix
+      #if __unix
       posix_fallocate(segmentFd, offset * PAGE_SIZE, PAGE_SIZE);
-#endif
-      if (pwrite(segmentFd, frame.getData(), PAGE_SIZE, offset * PAGE_SIZE) == -1) {
-        std::cerr << "error while writing segment " << segmentId << " to disk: " << strerror(errno) << std::endl;
-      }
+      #endif
+      dbImpl::checkedPwrite(segmentFd, frame.getData(), PAGE_SIZE, offset*PAGE_SIZE);
     }
     
     frame.unlock();

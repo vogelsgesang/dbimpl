@@ -19,15 +19,15 @@ namespace dbImpl {
     
     // returns BufferFrame for given pageId
     // if exclusive==true, the page is write-locked otherwise read-locked
-    // if there's no free space in buffer, an old page evicted following the twoQ strategy
+    // if there's no free space in buffer, an old page will be evicted following the twoQ strategy
     BufferFrame& fixPage(uint64_t pageId, bool exclusive);
 
-    // takes a BufferFrame and writes it on disk, if it is dirty
+    // takes a BufferFrame and writes it on disk if it is dirty
     void unfixPage(BufferFrame& frame, bool isDirty);
 
 
   private:
-    // number of pages in buffer
+    // maximum number of pages in buffer
     uint64_t size;
     // hash map storing the BufferFrames
     std::unordered_map<uint64_t, BufferFrame> frames;
@@ -35,7 +35,7 @@ namespace dbImpl {
     std::unordered_map<uint64_t, int> segmentFds;
     // implementation of twoQ strategy
     TwoQ<uint64_t> twoQ;
-    // lock
+    // the global lock for the maps and the twoQ
     std::mutex lock;
   };
 }

@@ -73,7 +73,7 @@ bin/generateRandomUint64File$(BIN_SUFFIX): $(OBJ_DIR)/cli/generateRandomUint64Fi
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-BUFFER_OBJS=buffer/bufferManager.o buffer/bufferFrame.o cli/buffertest.o
+BUFFER_OBJS=buffer/bufferManager.o buffer/bufferFrame.o cli/buffertest.o utils/checkedIO.o
 bin/buffertest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BUFFER_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
