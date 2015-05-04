@@ -1,6 +1,6 @@
 #include "checkedIO.h"
 
-#include <iostream>
+#include <sstream>
 #include <cstdint>
 #include <cstring>
 #include <cerrno>
@@ -8,14 +8,18 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <boost/format.hpp>
 
 namespace dbImpl {
 
 UnexpectedEofError::UnexpectedEofError(int fd)
-: std::runtime_error(
-    (boost::format("unexpected EOF while reading from file descriptor %1%") % fd).str()
-  ) {}
+: std::runtime_error(buildErrorMsg(fd)) {}
+
+std::string UnexpectedEofError::buildErrorMsg(int fd) {
+  std::ostringstream msg;
+  msg << "unexpected EOF while reading from file descriptor " << fd;
+  return msg.str();
+}
+
 
 void checkedPread(int fd, void* buf, size_t count, off_t offset) {
   size_t bytesRead = 0;
@@ -24,9 +28,9 @@ void checkedPread(int fd, void* buf, size_t count, off_t offset) {
     if(ret < 0) {
       int occurredErrno = errno;
       errno = 0; //reset, so that later calls can succeed
-      boost::format fmt("I/O error while reading from file descriptor %1%");
-      fmt % fd;
-      throw std::system_error(std::error_code(occurredErrno, std::system_category()), fmt.str());
+      std::ostringstream msg;
+      msg << "I/O error while reading from file descriptor " << fd;
+      throw std::system_error(std::error_code(occurredErrno, std::system_category()), msg.str());
     }
     if(ret == 0) {
       throw dbImpl::UnexpectedEofError(fd);
@@ -43,9 +47,9 @@ void checkedPwrite(int fd, void* buf, size_t count, off_t offset) {
     if(ret < 0) {
       int occurredErrno = errno;
       errno = 0; //reset, so that later calls can succeed
-      boost::format fmt("I/O error while writing to file descriptor %1%");
-      fmt % fd;
-      throw std::system_error(std::error_code(occurredErrno, std::system_category()), fmt.str());
+      std::ostringstream msg;
+      msg << "I/O error while writing to file descriptor " << fd;
+      throw std::system_error(std::error_code(occurredErrno, std::system_category()), msg.str());
     }
     bytesWritten += ret;
   }

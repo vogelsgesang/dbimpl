@@ -9,7 +9,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <system_error>
-#include <boost/format.hpp>
+#include <sstream>
 #include "buffer/definitions.h"
 #include "utils/checkedIO.h"
 
@@ -115,6 +115,7 @@ namespace dbImpl {
                 //this other thread might stay unnoticed. So we better erase this frame from the twoQ again...
                 twoQ.erase(evictedPageId);
               } else {
+                //frame is dirty again? drop this lock and try again...
                 evictedFrame->unlock();
               }
             }
@@ -155,9 +156,9 @@ namespace dbImpl {
         if (segmentFd == -1) {
           int occurredErrno = errno;
           errno = 0; //reset, so that later calls can succeed
-          boost::format fmt("unable to open segment %1%");
-          fmt % segmentId;
-          throw std::system_error(std::error_code(occurredErrno, std::system_category()), fmt.str());
+          std::ostringstream msg;
+          msg << "unable to open segment " << segmentId;
+          throw std::system_error(std::error_code(occurredErrno, std::system_category()), msg.str());
         }
         segmentFds[segmentId] = segmentFd;
       }
@@ -168,9 +169,9 @@ namespace dbImpl {
       if(fstat(segmentFd, &segmentStat) != 0) {
         int occurredErrno = errno;
         errno = 0; //reset, so that later calls can succeed
-        boost::format fmt("unable to stat segment %1%");
-        fmt % segmentId;
-        throw std::system_error(std::error_code(occurredErrno, std::system_category()), fmt.str());
+        std::ostringstream msg;
+        msg << "unable to stat segment " << segmentId;
+        throw std::system_error(std::error_code(occurredErrno, std::system_category()), msg.str());
       }
       if(segmentStat.st_size > offset) {
         // load page from disk

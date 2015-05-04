@@ -10,6 +10,8 @@ namespace dbImpl {
   class UnexpectedEofError : public std::runtime_error {
     public:
       UnexpectedEofError(int fd);
+    private:
+      static std::string buildErrorMsg(int fd);
   };
 
   //wraps pread with error checking code.
