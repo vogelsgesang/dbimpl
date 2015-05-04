@@ -58,10 +58,9 @@ namespace dbImpl {
         // freed.
         //
         // get next page to evict from twoQ
-        uint64_t evictedPage = twoQ.evict();
-        auto frameIt = frames.find(evictedPage);
+        uint64_t evictedPageId = twoQ.evict();
+        auto frameIt = frames.find(evictedPageId);
         #ifdef DEBUG
-        std::clog << "twoQ: " << twoQ << std::endl;
         if(frameIt == frames.end()) {
           throw std::logic_error("trying to evict a page which is not in memory");
         }
@@ -76,7 +75,7 @@ namespace dbImpl {
           // since we are holding the globalLock. We must unlock the frame
           // before destucting it.
           evictedFrame->unlock();
-          frames.erase(evictedPage);
+          frames.erase(evictedPageId);
         } else {
           // page IS dirty and needs to be flushed
           int segmentId = evictedFrame->pageId << segmentBits;
@@ -98,18 +97,23 @@ namespace dbImpl {
           //the frame or might use the frame which we are currently trying to evict during
           //this time. If this happens, we simply try to evict another frame.
           //We MUST retrieve the frame from the map again since another thread might have deleted it already
-          frameIt = frames.find(evictedPage);
+          frameIt = frames.find(evictedPageId);
           if(frameIt != frames.end()) {
             evictedFrame = &frameIt->second;
             //Only try to lock the frame. If it fails, another thread is already using
             //this frame again.
-            if(evictedFrame->tryLock(true)) {
+            if(evictedFrame->tryLock(true)) { //point (2)
               if(!evictedFrame->dirty) {
                 //nobody will be able to acquire this lock in the meantime
                 //since we are holding the globalLock. We must unlock the frame
                 //before destucting it.
                 evictedFrame->unlock();
-                frames.erase(evictedPage);
+                frames.erase(evictedPageId);
+                //we MUST remove the page id from the twoQ again although evict() already
+                //removed it from the twoQ. At point (1) another thread might have slipped in and
+                //accessed the page without modifying it. If it freed its lock before point (2),
+                //this other thread might stay unnoticed. So we better erase this frame from the twoQ again...
+                twoQ.erase(evictedPageId);
               } else {
                 evictedFrame->unlock();
               }

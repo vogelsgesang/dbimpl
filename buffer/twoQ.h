@@ -21,6 +21,8 @@ namespace dbImpl {
       
       bool empty();
 
+      void erase(T pageId);
+
     private:
       // FIFO and LRU queues are managed using std::lists
       std::list<T> fifoQueue;

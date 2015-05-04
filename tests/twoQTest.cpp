@@ -85,6 +85,50 @@ TEST(TwoQTest, behavesLikeALRU) {
   EXPECT_EQ(1, twoQ.evict());
 }
 
+TEST(TwoQTest, elementsCanBeErasedFromFIFO) {
+  TwoQ<int> twoQ;
+
+  EXPECT_TRUE(twoQ.empty());
+
+  twoQ.access(1);
+  twoQ.erase(1);
+
+  EXPECT_TRUE(twoQ.empty());
+
+  twoQ.access(1);
+  twoQ.access(2);
+  twoQ.access(3);
+  twoQ.erase(2);
+
+  EXPECT_EQ(1, twoQ.evict());
+  EXPECT_EQ(3, twoQ.evict());
+  EXPECT_TRUE(twoQ.empty());
+}
+
+TEST(TwoQTest, elementsCanBeErasedFromLRU) {
+  TwoQ<int> twoQ;
+
+  EXPECT_TRUE(twoQ.empty());
+
+  twoQ.access(1);
+  twoQ.access(1);
+  twoQ.erase(1);
+
+  EXPECT_TRUE(twoQ.empty());
+
+  twoQ.access(1);
+  twoQ.access(1);
+  twoQ.access(2);
+  twoQ.access(2);
+  twoQ.access(3);
+  twoQ.access(3);
+  twoQ.erase(2);
+
+  EXPECT_EQ(1, twoQ.evict());
+  EXPECT_EQ(3, twoQ.evict());
+  EXPECT_TRUE(twoQ.empty());
+}
+
 TEST(TwoQTest, canStorePointersAsWell) {
   int a, b, c;
   TwoQ<int*> twoQ;

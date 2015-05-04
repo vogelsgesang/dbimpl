@@ -24,10 +24,8 @@ namespace dbImpl {
   
   template<typename T>
   void TwoQ<T>::access(T pageId) {
-    // Check if in memory
-    
+    // Check if in LRU?
     auto it = lruMap.find(pageId);
-    
     // in LRU?
     if (it != lruMap.end()) {
       // Move to beginning
@@ -49,6 +47,22 @@ namespace dbImpl {
         fifoQueue.push_front(pageId);
         fifoMap[pageId] = fifoQueue.begin();
       }
+    }
+  }
+
+  template<typename T>
+  void TwoQ<T>::erase(T pageId) {
+    //erase from LRU queue
+    auto it1 = lruMap.find(pageId);
+    if(it1 != lruMap.end()) {
+      lruQueue.erase(it1->second);
+      lruMap.erase(it1);
+    }
+    //erase from FIFO queue
+    auto it2 = fifoMap.find(pageId);
+    if(it2 != fifoMap.end()) {
+      fifoQueue.erase(it2->second);
+      fifoMap.erase(it2);
     }
   }
   
