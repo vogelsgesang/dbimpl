@@ -2,8 +2,8 @@
 #define __TWO_Q_HPP__
 
 #include <unordered_map>
-#include <queue>
 #include <list>
+#include <ostream>
 
 namespace dbImpl {
 
@@ -16,7 +16,7 @@ namespace dbImpl {
       // Evicts a page out of the queues.
       T evict();
       
-      // Coordinates the access of a page.
+      // Informs the queue about the access of a page.
       void access(T pageId);
       
       bool empty();
@@ -31,7 +31,13 @@ namespace dbImpl {
       // Hashmaps are used for O(1) access to the queue elements
       std::unordered_map<T, list_iterator> fifoMap;
       std::unordered_map<T, list_iterator> lruMap;
+
+      template<typename T2>
+      friend std::ostream& operator<< (std::ostream& stream, const TwoQ<T2>& queue);
   };
+
+  template<typename T>
+  std::ostream& operator<< (std::ostream& out, const TwoQ<T>& queue);
 }
 
 #include "buffer/twoQ.inl.cpp"

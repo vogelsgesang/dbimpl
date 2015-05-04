@@ -4,6 +4,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <stdlib.h>
+#include <system_error>
 
 namespace dbImpl {
 
@@ -23,10 +24,14 @@ namespace dbImpl {
   }
 
   void BufferFrame::lock(bool exclusive) {
+    int ret;
     if (exclusive) {
-      pthread_rwlock_wrlock(&latch);
+      ret = pthread_rwlock_wrlock(&latch);
     } else {
-      pthread_rwlock_rdlock(&latch);
+      ret = pthread_rwlock_rdlock(&latch);
+    }
+    if(ret != 0) {
+      throw std::system_error(std::error_code(ret, std::system_category()), "unable to lock frame");
     }
   }
 
@@ -37,11 +42,20 @@ namespace dbImpl {
     } else {
       ret = pthread_rwlock_tryrdlock(&latch);
     }
-    return ret == 0;
+    if(ret == 0) {
+      return true;
+    } else if(ret == EBUSY) {
+      return false;
+    } else {
+      throw std::system_error(std::error_code(ret, std::system_category()), "unable to trylock frame");
+    }
   }
 
   void BufferFrame::unlock() {
-      pthread_rwlock_unlock(&latch);
+    int ret = pthread_rwlock_unlock(&latch);
+    if(ret != 0) {
+      throw std::system_error(std::error_code(ret, std::system_category()), "unable to unlock frame");
+    }
   }
 
 

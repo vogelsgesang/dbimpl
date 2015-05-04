@@ -1,10 +1,13 @@
 #include "buffer/bufferManager.h"
 
+#include <iostream>
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <cstring>
+#include <stdexcept>
 #include <system_error>
 #include <boost/format.hpp>
 #include "buffer/definitions.h"
@@ -20,10 +23,17 @@ namespace dbImpl {
   }
   
   BufferManager::~BufferManager() {
+    std::unique_lock<std::mutex> globalLock(globalMutex);
     //flush all dirty pages
     for(auto& frameEntry: frames) {
       BufferFrame& frame = frameEntry.second;
       if(frame.dirty) {
+          //wait until everyone finished accessing this page
+          frame.lock(true);
+          //nobody will be able to acquire this lock in the meantime
+          //since we are holding the globalLock. We must unlock the frame
+          //before destucting it. So, now is a good moment to unlock it.
+          frame.unlock();
           int segmentId = frame.pageId << segmentBits;
           int segmentFd = segmentFds.at(segmentId);
           int offset = (frame.pageId & offsetBitMask)*PAGE_SIZE;
@@ -38,7 +48,6 @@ namespace dbImpl {
   
   BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
     std::unique_lock<std::mutex> globalLock(globalMutex);
-    twoQ.access(pageId);
     
     if (frames.count(pageId) == 0) { // page is not in buffer
       while (frames.size() >= size) {
@@ -49,40 +58,62 @@ namespace dbImpl {
         // freed.
         //
         // get next page to evict from twoQ
-        // TODO: twoQ and own map might get out of sync if evicting fails (see below)
         uint64_t evictedPage = twoQ.evict();
         auto frameIt = frames.find(evictedPage);
-        BufferFrame& frame = frameIt->second;
+        #ifdef DEBUG
+        std::clog << "twoQ: " << twoQ << std::endl;
+        if(frameIt == frames.end()) {
+          throw std::logic_error("trying to evict a page which is not in memory");
+        }
+        #endif
+        BufferFrame* evictedFrame = &frameIt->second;
         // before deleting the frame, we need to get an exclusive lock on it
-        frame.lock(true); //TODO: exception safe locking...
+        evictedFrame->lock(true); //TODO: exception safe locking...
         // do we need to flush it?
-        if(!frame.dirty) {
+        if(!evictedFrame->dirty) {
           // page is not dirty
+          // nobody will be able to acquire this lock in the meantime
+          // since we are holding the globalLock. We must unlock the frame
+          // before destucting it.
+          evictedFrame->unlock();
           frames.erase(evictedPage);
         } else {
           // page IS dirty and needs to be flushed
-          int segmentId = frame.pageId << segmentBits;
+          int segmentId = evictedFrame->pageId << segmentBits;
           int segmentFd = segmentFds.at(segmentId);
-          int offset = (frame.pageId & offsetBitMask)*PAGE_SIZE;
-          //release the global lock, write the page, acquire the global lock
+          int offset = (evictedFrame->pageId & offsetBitMask)*PAGE_SIZE;
+          //release the global lock, write the page
           globalLock.unlock();
-          dbImpl::checkedPwrite(segmentFd, frame.getData(), PAGE_SIZE, offset);
+          dbImpl::checkedPwrite(segmentFd, evictedFrame->getData(), PAGE_SIZE, offset);
           //Maybe we actually fail evicting this page (see below), so we
           //better mark it as pristine to avoid flushing it multiple times
-          frame.dirty = false;
+          evictedFrame->dirty = false;
           //we can not simply acquire the global lock again, since otherwise
           //we would acquire the locks in the wrong order. Instead, we first must
           //unlock the page and then get the global lock.
-          frame.unlock();
+          evictedFrame->unlock();
           //No locks are held here. (1)
           globalLock.lock();
-          //At point (1) we do not hold any locks. Another thread might use the
-          //frame which we are currently trying to evict during this time. If this
-          //happens, we simply try to evict another frame.
-          //Only try to lock the frame. If it fails, another thread is already using
-          //this frame again.
-          if(frame.tryLock(true) && !frame.dirty) {
-            frames.erase(evictedPage);
+          //At point (1) we do not hold any locks. Another thread might have already deleted
+          //the frame or might use the frame which we are currently trying to evict during
+          //this time. If this happens, we simply try to evict another frame.
+          //We MUST retrieve the frame from the map again since another thread might have deleted it already
+          frameIt = frames.find(evictedPage);
+          if(frameIt != frames.end()) {
+            evictedFrame = &frameIt->second;
+            //Only try to lock the frame. If it fails, another thread is already using
+            //this frame again.
+            if(evictedFrame->tryLock(true)) {
+              if(!evictedFrame->dirty) {
+                //nobody will be able to acquire this lock in the meantime
+                //since we are holding the globalLock. We must unlock the frame
+                //before destucting it.
+                evictedFrame->unlock();
+                frames.erase(evictedPage);
+              } else {
+                evictedFrame->unlock();
+              }
+            }
           }
         }
       }
@@ -92,9 +123,15 @@ namespace dbImpl {
                      std::forward_as_tuple(pageId),
                      std::forward_as_tuple(pageId));
       BufferFrame& frame = frames.at(pageId);
+      // inform twoQ about this access
+      // DO NOT inform the twoQ about this access before inserting the BufferFrame
+      // into the `frames` map. Otherwise another thread could try to evict the page
+      // before it was even added to the `frames` map and this would result in
+      // a SIGSEGV.
+      twoQ.access(pageId);
       // lock the frame and unlock the global lock while data is being loaded
-      frame.lock(true); // while loading we need a write lock
       //TODO: use an exception safe lock mechanism here...
+      frame.lock(true); // while loading we need a write lock
       globalLock.unlock(); // globalLock should not be held during disk I/O
 
       //get the segment file's file descriptor
@@ -152,13 +189,15 @@ namespace dbImpl {
       // page is in buffer
       BufferFrame& frame = frames.at(pageId);
       frame.lock(exclusive);
-      globalLock.unlock();
+      twoQ.access(pageId);
       return frame;
     }
   }
   
   void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
-    frame.dirty |= isDirty;
+    if(isDirty) {
+      frame.dirty = true;
+    }
     frame.unlock();
   }
   

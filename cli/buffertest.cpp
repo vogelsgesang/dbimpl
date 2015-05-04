@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <vector>
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
@@ -32,7 +33,6 @@ static void* scan(void *arg) {
   
   while (!stop) {
     unsigned start = random()%(pagesOnDisk-10);
-    cout << start << endl;
     for (unsigned page=start; page<start+10; page++) {
       BufferFrame& bf = bm->fixPage(page, false);
       unsigned newcount = reinterpret_cast<unsigned*>(bf.getData())[0];

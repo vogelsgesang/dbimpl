@@ -56,5 +56,36 @@ namespace dbImpl {
   bool TwoQ<T>::empty() {
     return lruQueue.empty() && fifoQueue.empty();
   }
+
+  template<typename T>
+  std::ostream& operator<< (std::ostream& out, const TwoQ<T>& queue) {
+    out << "fifo: ";
+    if(queue.fifoQueue.empty()) {
+      out << "empty ";
+    } else {
+      auto it = queue.fifoQueue.begin();
+      while(it != queue.fifoQueue.end()) {
+        out << *it;
+        it++;
+        if(it != queue.fifoQueue.end()) {
+          out << ", ";
+        }
+      }
+    }
+    out << "; lru: ";
+    if(queue.lruQueue.empty()) {
+      out << "empty";
+    } else {
+      auto it = queue.lruQueue.begin();
+      while(it != queue.lruQueue.end()) {
+        out << *it;
+        it++;
+        if(it != queue.lruQueue.end()) {
+          out << ", ";
+        }
+      }
+    }
+    return out;
+  }
   
 }
