@@ -20,7 +20,7 @@ unsigned* threadSeed;
 volatile bool stop=false;
 
 unsigned randomPage(unsigned threadNum) {
-    // pseudo-gaussian, causes skewed access pattern
+  // pseudo-gaussian, causes skewed access pattern
   unsigned page=0;
   for (unsigned  i=0; i<20; i++)
     page+=rand_r(&threadSeed[threadNum])%pagesOnDisk;
@@ -28,7 +28,7 @@ unsigned randomPage(unsigned threadNum) {
 }
 
 static void* scan(void *arg) {
-    // scan all pages and check if the counters are not decreasing
+  // scan all pages and check if the counters are not decreasing
   vector<unsigned> counters(pagesOnDisk, 0);
   
   while (!stop) {
@@ -37,7 +37,7 @@ static void* scan(void *arg) {
       BufferFrame& bf = bm->fixPage(page, false);
       unsigned newcount = reinterpret_cast<unsigned*>(bf.getData())[0];
       if(newcount < counters[page]) {
-        std::cerr << "page " << page << ": count decreased from " << counters[page] << " to " << newcount << std::endl;
+        std::cerr << "scan thread: page " << page << ": count decreased from " << counters[page] << " to " << newcount << std::endl;
       }
       counters[page]=newcount;
       bm->unfixPage(bf, false);
@@ -48,14 +48,22 @@ static void* scan(void *arg) {
 }
 
 static void* readWrite(void *arg) {
-    // read or write random pages
+  // read or write random pages
   uintptr_t threadNum = reinterpret_cast<uintptr_t>(arg);
-  
+  vector<unsigned> counters(pagesOnDisk, 0);
+
   uintptr_t count = 0;
   for (unsigned i=0; i<100000/threadCount; i++) {
     bool isWrite = rand_r(&threadSeed[threadNum])%128<10;
-    BufferFrame& bf = bm->fixPage(randomPage(threadNum), isWrite);
-    
+    uint64_t page = randomPage(threadNum);
+    BufferFrame& bf = bm->fixPage(page, isWrite);
+
+    unsigned newcount = reinterpret_cast<unsigned*>(bf.getData())[0];
+    if(newcount < counters[page]) {
+      std::clog << "readWrite thread: page " << page << ": count decreased from " << counters[page] << " to " << newcount << std::endl;
+    }
+    counters[page]=newcount;
+
     if (isWrite) {
       count++;
       reinterpret_cast<unsigned*>(bf.getData())[0]++;
@@ -86,23 +94,23 @@ int main(int argc, char** argv) {
   pthread_attr_t pattr;
   pthread_attr_init(&pattr);
   
-    // set all counters to 0
+  // set all counters to 0
   for (unsigned i=0; i<pagesOnDisk; i++) {
     BufferFrame& bf = bm->fixPage(i, true);
     reinterpret_cast<unsigned*>(bf.getData())[0]=0;
     bm->unfixPage(bf, true);
   }
   
-    // start scan thread
+  // start scan thread
   pthread_t scanThread;
   pthread_create(&scanThread, &pattr, scan, NULL);
   
-    // start read/write threads
+  // start read/write threads
   for (unsigned i=0; i<threadCount; i++) {
     pthread_create(&threads[i], &pattr, readWrite, reinterpret_cast<void*>(i));
   }
   
-    // wait for read/write threads
+  // wait for read/write threads
   unsigned totalCount = 0;
   for (unsigned i=0; i<threadCount; i++) {
     void *ret;
@@ -111,17 +119,16 @@ int main(int argc, char** argv) {
   }
   
   
-    // wait for scan thread
+  // wait for scan thread
   stop=true;
   pthread_join(scanThread, NULL);
-    // cout << "scanThread stopped" << endl;
   
   
-    // restart buffer manager
+  // restart buffer manager
   delete bm;
   bm = new BufferManager(pagesInRAM);
   
-    // check counter
+  // check counter
   unsigned totalCountOnDisk = 0;
   for (unsigned i=0; i<pagesOnDisk; i++) {
     BufferFrame& bf = bm->fixPage(i,false);
