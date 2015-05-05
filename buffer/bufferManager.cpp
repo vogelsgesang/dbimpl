@@ -47,83 +47,83 @@ namespace dbImpl {
   BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
     std::unique_lock<std::mutex> globalLock(globalMutex);
     
-    if (frames.count(pageId) == 0) {
-      // page is not in buffer
-      while (frames.size() >= size) {
-        // buffer is already full
-        // a simple if is not enough since we need to release the global
-        // lock during flushing the evicted pages' content to disk and
-        // another thread might slip in and occupy the slot which was just
-        // freed.
-        //
-        // get page to be evicted from twoQ
-        uint64_t evictedPageId = twoQ.evict();
-        auto frameIt = frames.find(evictedPageId);
-        #ifdef DEBUG
-        if(frameIt == frames.end()) {
-          throw std::logic_error("trying to evict a page which is not in memory");
-        }
-        #endif
-        BufferFrame* evictedFrame = &frameIt->second;
-        // before deleting the frame, we need to get an exclusive lock on it
-        evictedFrame->lock(true); //TODO: exception safe locking...
-        // do we need to flush it?
-        if(!evictedFrame->dirty) {
-          // page is not dirty
-          evictedFrame->unlock();
-          // nobody will be able to acquire this lock in the meantime
-          // since we are holding the globalLock. We must unlock the frame
-          // before destructing it.
-          frames.erase(evictedPageId);
-        } else {
-          // page IS dirty and needs to be flushed
-          int segmentId = evictedFrame->pageId << segmentBits;
-          int segmentFd = segmentFds.at(segmentId);
-          int offset = (evictedFrame->pageId & offsetBitMask)*PAGE_SIZE;
-          //release the global lock, write the page
-          globalLock.unlock();
-          dbImpl::checkedPwrite(segmentFd, evictedFrame->getData(), PAGE_SIZE, offset);
-          //Maybe we actually fail evicting this page (see below), so we
-          //better mark it as pristine to avoid flushing it multiple times
-          evictedFrame->dirty = false;
-          //we can not simply acquire the global lock again, since otherwise
-          //we would acquire the locks in the wrong order. Instead, we first must
-          //unlock the page and then get the global lock.
-          evictedFrame->unlock();
-          //No locks are held here. (1)
-          globalLock.lock();
-          //At point (1) we do not hold any locks. Another thread might have already deleted
-          //the frame or might use the frame which we are currently trying to evict during
-          //this time. If this happens, we simply try to evict another frame.
-          //We MUST retrieve the frame from the map again since another thread might have deleted it already
-          frameIt = frames.find(evictedPageId);
-          if(frameIt != frames.end()) {
-            evictedFrame = &frameIt->second;
-            //Only try to lock the frame. If it fails, another thread is already using
-            //this frame again.
-            if(evictedFrame->tryLock(true)) { //point (2)
-              if(!evictedFrame->dirty) {
-                //nobody will be able to acquire this lock in the meantime
-                //since we are holding the globalLock. We must unlock the frame
-                //before destructing it.
-                evictedFrame->unlock();
-                frames.erase(evictedPageId);
-                //we MUST remove the page id from the twoQ again although evict() already
-                //removed it from the twoQ. At point (1) another thread might have slipped in and
-                //accessed the page without modifying it. If it freed its lock before point (2),
-                //this other thread might stay unnoticed. So we better erase this frame from the twoQ again...
-                twoQ.erase(evictedPageId);
-              } else {
-                //frame is dirty again? drop this lock and try again...
-                evictedFrame->unlock();
-              }
+    // page is not in buffer and the buffer is to small?
+    //
+    // a simple `if` is not enough since we need to release the global
+    // lock during flushing the evicted page's content to disk and
+    // another thread might slip in, select the same page for eviction and
+    // occupy the slot which was just freed.
+    // On the other hand the other we recheck if the page was already loaded
+    // in every iteration since another thread might have loaded it in the
+    // mean time.
+    while (frames.count(pageId) == 0 && frames.size() >= size) {
+      // get page to be evicted from twoQ
+      uint64_t evictedPageId = twoQ.evict();
+      auto frameIt = frames.find(evictedPageId);
+      #ifdef DEBUG
+      if(frameIt == frames.end()) {
+        throw std::logic_error("trying to evict a page which is not in memory");
+      }
+      #endif
+      BufferFrame* evictedFrame = &frameIt->second;
+      // before deleting the frame, we need to get an exclusive lock on it
+      evictedFrame->lock(true); //TODO: exception safe locking...
+      // do we need to flush it?
+      if(!evictedFrame->dirty) {
+        // page is not dirty
+        evictedFrame->unlock();
+        // nobody will be able to acquire this lock in the meantime
+        // since we are holding the globalLock. We must unlock the frame
+        // before destructing it.
+        frames.erase(evictedPageId);
+      } else {
+        // page IS dirty and needs to be flushed
+        int segmentId = evictedFrame->pageId << segmentBits;
+        int segmentFd = segmentFds.at(segmentId);
+        int offset = (evictedFrame->pageId & offsetBitMask)*PAGE_SIZE;
+        //release the global lock, write the page
+        globalLock.unlock();
+        dbImpl::checkedPwrite(segmentFd, evictedFrame->getData(), PAGE_SIZE, offset);
+        //Maybe we actually fail evicting this page (see below), so we
+        //better mark it as pristine to avoid flushing it multiple times
+        evictedFrame->dirty = false;
+        //we can not simply acquire the global lock again, since otherwise
+        //we would acquire the locks in the wrong order. Instead, we first must
+        //unlock the page and then get the global lock.
+        evictedFrame->unlock();
+        //No locks are held here. (1)
+        globalLock.lock();
+        //At point (1) we do not hold any locks. Another thread might have already deleted
+        //the frame or might use the frame which we are currently trying to evict during
+        //this time. If this happens, we simply try to evict another frame.
+        //We MUST retrieve the frame from the map again since another thread might have deleted it already
+        frameIt = frames.find(evictedPageId);
+        if(frameIt != frames.end()) {
+          evictedFrame = &frameIt->second;
+          //Only try to lock the frame. If it fails, another thread is already using
+          //this frame again.
+          if(evictedFrame->tryLock(true)) { //point (2)
+            if(!evictedFrame->dirty) {
+              //nobody will be able to acquire this lock in the meantime
+              //since we are holding the globalLock. We must unlock the frame
+              //before destructing it.
+              evictedFrame->unlock();
+              frames.erase(evictedPageId);
+              //we MUST remove the page id from the twoQ again although evict() already
+              //removed it from the twoQ. At point (1) another thread might have slipped in and
+              //accessed the page without modifying it. If it freed its lock before point (2),
+              //this other thread might stay unnoticed. So we better erase this frame from the twoQ again...
+              twoQ.erase(evictedPageId);
+            } else {
+              //frame is dirty again? drop this lock and try again...
+              evictedFrame->unlock();
             }
           }
         }
       }
     }
 
-    //we need to check again if the page is in the buffer since the global lock
+    //we need to recheck if the page is in the buffer since the global lock
     //was abandoned at point (1)
     if (frames.count(pageId) == 0) {
       // insert page into unordered_map
