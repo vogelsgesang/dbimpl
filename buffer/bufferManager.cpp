@@ -57,6 +57,13 @@ namespace dbImpl {
     // in every iteration since another thread might have loaded it in the
     // mean time.
     while (frames.count(pageId) == 0 && frames.size() >= size) {
+      // pages which are currently getting flushed to disk are still
+      // in the `frames` map but not in the 2Q anymore. Hence, the
+      // 2Q might be empty while the `frames` map is full.
+      while(twoQ.empty()) {
+        twoQAccessed.wait(globalLock);
+        continue; //we must recheck the loop condition
+      }
       // get page to be evicted from twoQ
       uint64_t evictedPageId = twoQ.evict();
       auto frameIt = frames.find(evictedPageId);
@@ -137,6 +144,7 @@ namespace dbImpl {
       // before it was even added to the `frames` map and this would result in
       // a SIGSEGV.
       twoQ.access(pageId);
+      twoQAccessed.notify_one();
       // lock the frame and unlock the global lock while data is being loaded
       //TODO: use an exception safe lock mechanism here...
       frame.lock(true); // while loading we need a write lock
@@ -202,6 +210,7 @@ namespace dbImpl {
       BufferFrame& frame = frames.at(pageId);
       frame.lock(exclusive);
       twoQ.access(pageId);
+      twoQAccessed.notify_one();
       return frame;
     }
   }

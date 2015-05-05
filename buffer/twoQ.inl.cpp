@@ -1,6 +1,6 @@
 #include "buffer/twoQ.h"
 
-#include <exception>
+#include <stdexcept>
 
 namespace dbImpl {
   
@@ -16,7 +16,7 @@ namespace dbImpl {
       lruMap.erase(evicted);
       lruQueue.pop_back();
     } else {
-      throw std::exception();
+      throw std::runtime_error("evict() called on empty 2Q");
     }
 
     return evicted;

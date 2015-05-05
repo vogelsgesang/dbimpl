@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <mutex>
+#include <condition_variable>
 #include "buffer/bufferFrame.h"
 #include "buffer/twoQ.h"
 
@@ -35,6 +36,7 @@ namespace dbImpl {
     std::unordered_map<uint64_t, int> segmentFds;
     // implementation of twoQ strategy
     TwoQ<uint64_t> twoQ;
+    std::condition_variable twoQAccessed;
     // the global mutex for the maps and the twoQ
     std::mutex globalMutex;
   };
