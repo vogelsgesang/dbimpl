@@ -36,7 +36,9 @@ static void* scan(void *arg) {
     for (unsigned page=start; page<start+10; page++) {
       BufferFrame& bf = bm->fixPage(page, false);
       unsigned newcount = reinterpret_cast<unsigned*>(bf.getData())[0];
-      assert(counters[page]<=newcount);
+      if(newcount < counters[page]) {
+        std::cerr << "page " << page << ": count decreased from " << counters[page] << " to " << newcount << std::endl;
+      }
       counters[page]=newcount;
       bm->unfixPage(bf, false);
     }

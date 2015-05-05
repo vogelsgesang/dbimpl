@@ -37,7 +37,7 @@ namespace dbImpl {
       }
       //nobody will be able to acquire this lock in the meantime
       //since we are holding the globalLock. We must unlock the frame
-      //before destucting it. So, now is a good moment to unlock it.
+      //before destructing it. So, now is a good moment to unlock it.
       frame.unlock();
     }
     //close all files
@@ -49,7 +49,8 @@ namespace dbImpl {
   BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
     std::unique_lock<std::mutex> globalLock(globalMutex);
     
-    if (frames.count(pageId) == 0) { // page is not in buffer
+    if (frames.count(pageId) == 0) {
+      // page is not in buffer
       while (frames.size() >= size) {
         // buffer is already full
         // a simple if is not enough since we need to release the global
@@ -71,10 +72,10 @@ namespace dbImpl {
         // do we need to flush it?
         if(!evictedFrame->dirty) {
           // page is not dirty
+          evictedFrame->unlock();
           // nobody will be able to acquire this lock in the meantime
           // since we are holding the globalLock. We must unlock the frame
-          // before destucting it.
-          evictedFrame->unlock();
+          // before destructing it.
           frames.erase(evictedPageId);
         } else {
           // page IS dirty and needs to be flushed
@@ -106,7 +107,7 @@ namespace dbImpl {
               if(!evictedFrame->dirty) {
                 //nobody will be able to acquire this lock in the meantime
                 //since we are holding the globalLock. We must unlock the frame
-                //before destucting it.
+                //before destructing it.
                 evictedFrame->unlock();
                 frames.erase(evictedPageId);
                 //we MUST remove the page id from the twoQ again although evict() already
