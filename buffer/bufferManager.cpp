@@ -23,25 +23,25 @@ namespace dbImpl {
   }
   
   BufferManager::~BufferManager() {
-    std::unique_lock<std::mutex> globalLock(globalMutex);
+    std::lock_guard<std::mutex> globalLock(globalMutex);
     //flush all dirty pages
     for(auto& frameEntry: frames) {
       BufferFrame& frame = frameEntry.second;
+      //wait until everyone finished accessing this page
+      frame.lock(true);
       if(frame.dirty) {
-          //wait until everyone finished accessing this page
-          frame.lock(true);
-          //nobody will be able to acquire this lock in the meantime
-          //since we are holding the globalLock. We must unlock the frame
-          //before destucting it. So, now is a good moment to unlock it.
-          frame.unlock();
           int segmentId = frame.pageId << segmentBits;
           int segmentFd = segmentFds.at(segmentId);
           int offset = (frame.pageId & offsetBitMask)*PAGE_SIZE;
           dbImpl::checkedPwrite(segmentFd, frame.getData(), PAGE_SIZE, offset);
       }
+      //nobody will be able to acquire this lock in the meantime
+      //since we are holding the globalLock. We must unlock the frame
+      //before destucting it. So, now is a good moment to unlock it.
+      frame.unlock();
     }
     //close all files
-    for (auto segment: segmentFds) {
+    for (auto segment : segmentFds) {
       close(segment.second);
     }
   }
@@ -57,7 +57,7 @@ namespace dbImpl {
         // another thread might slip in and occupy the slot which was just
         // freed.
         //
-        // get next page to evict from twoQ
+        // get page to be evicted from twoQ
         uint64_t evictedPageId = twoQ.evict();
         auto frameIt = frames.find(evictedPageId);
         #ifdef DEBUG
@@ -184,10 +184,14 @@ namespace dbImpl {
       // lock the frame with the actually requested lock level
       if(!exclusive) {
         //we need to downgrade the lock
-        //TODO: this downgrade mechanism is not really thread safe since
-        //      another thread might kick in and evict the page in the meantime
-        frame.unlock();
-        frame.lock(exclusive);
+        //TODO: the downgrade mechanism
+        //        frame.unlock();
+        //        frame.lock(exclusive);
+        //      would not be thread safe since another thread might
+        //      kick in and evict the page in the meantime.
+        //      Nobody (except for performance) gets harmed if we hand out an
+        //      exclusive lock instead of a reader lock, so we simply skip the
+        //      downgrade
       }
       return frame;
     } else {
