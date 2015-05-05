@@ -8,7 +8,7 @@
 namespace dbImpl {
   //forward declaration of class BufferManager.
   //Necessary for "friend class BufferManager".
-  //I could also include BufferManager.h but this increase hurt build time.
+  //I could also include BufferManager.h but doing so would hurt build time.
   class BufferManager;
 
   class BufferFrame {
@@ -28,6 +28,12 @@ namespace dbImpl {
       // returns data from page
       void* getData();
 
+    private:
+      bool dirty;
+      // actual data
+      void* data;
+      // frame's lock
+      pthread_rwlock_t latch;
       // locks this frame with a write or read lock
       void lock(bool exclusive);
       // tries to acquire the lock. does not block.
@@ -35,13 +41,6 @@ namespace dbImpl {
       bool tryLock(bool exclusive);
       // unlocks frame
       void unlock();
-
-    private:
-      bool dirty;
-      // actual data
-      void* data;
-      // frame's lock
-      pthread_rwlock_t latch;
   };
 }
 
