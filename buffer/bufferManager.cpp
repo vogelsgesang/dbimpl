@@ -18,6 +18,18 @@ namespace dbImpl {
     //rehash will ever be necessary. Hence, we can store iterators
     //to this unordered_map safely without any iterator being invalidated.
     frames.reserve(size);
+    // create segment directory if it doesn't exist
+    if (mkdir("segments", S_IRWXU) == -1 && errno != 17) {
+      int occurredErrno = errno;
+      errno = 0; //reset, so that later calls can succeed
+      throw std::system_error(std::error_code(occurredErrno, std::system_category()), "unable to create directory \"segments\"");
+    }
+    folderFd = open("segments", O_DIRECTORY);
+    if (folderFd == -1) {
+      int occurredErrno = errno;
+      errno = 0; //reset, so that later calls can succeed
+      throw std::system_error(std::error_code(occurredErrno, std::system_category()), "unable to open directory \"segments\"");
+    }
   }
   
   BufferManager::~BufferManager() {
@@ -157,13 +169,7 @@ namespace dbImpl {
       if (segmentFds.count(segmentId) == 1) { // segment file exists
         segmentFd = segmentFds.at(segmentId);
       } else { // segment file does not exist
-        // create segment directory
-        if (mkdir("segments", S_IRWXU) == -1 && errno != 17) {
-          int occurredErrno = errno;
-          errno = 0; //reset, so that later calls can succeed
-          throw std::system_error(std::error_code(occurredErrno, std::system_category()), "unable to create directory \"segments\"");
-        }
-        segmentFd = open(("segments/" + std::to_string(segmentId)).c_str(), O_RDWR | O_CREAT, S_IRUSR|S_IWUSR);
+        segmentFd = openat(folderFd, std::to_string(segmentId).c_str(), O_RDWR | O_CREAT, S_IRUSR|S_IWUSR);
         if (segmentFd == -1) {
           int occurredErrno = errno;
           errno = 0; //reset, so that later calls can succeed

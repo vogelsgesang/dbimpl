@@ -32,6 +32,8 @@ namespace dbImpl {
     uint64_t size;
     // hash map storing the BufferFrames
     std::unordered_map<uint64_t, BufferFrame> frames;
+    // file descriptor for the directory storing all segment files
+    int folderFd;
     // hash map storing file descriptors for all created segment files
     std::unordered_map<uint64_t, int> segmentFds;
     // implementation of twoQ strategy
