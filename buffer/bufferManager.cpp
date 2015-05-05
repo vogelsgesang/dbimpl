@@ -1,7 +1,5 @@
 #include "buffer/bufferManager.h"
 
-#include <iostream>
-
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -123,7 +121,11 @@ namespace dbImpl {
           }
         }
       }
+    }
 
+    //we need to check again if the page is in the buffer since the global lock
+    //was abandoned at point (1)
+    if (frames.count(pageId) == 0) {
       // insert page into unordered_map
       frames.emplace(std::piecewise_construct,
                      std::forward_as_tuple(pageId),
