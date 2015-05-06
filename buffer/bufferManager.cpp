@@ -72,8 +72,10 @@ namespace dbImpl {
       // pages which are currently getting flushed to disk are still
       // in the `frames` map but not in the 2Q anymore. Hence, the
       // 2Q might be empty while the `frames` map is full.
-      while(twoQ.empty()) {
-        twoQAccessed.wait(globalLock);
+      if(twoQ.empty()) {
+        while(twoQ.empty()) {
+          twoQAccessed.wait(globalLock);
+        }
         continue; //we must recheck the loop condition
       }
       // get page to be evicted from twoQ
