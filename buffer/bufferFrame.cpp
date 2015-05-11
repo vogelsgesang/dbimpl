@@ -1,5 +1,4 @@
 #include "buffer/bufferFrame.h"
-#include "buffer/definitions.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -8,9 +7,9 @@
 
 namespace dbImpl {
 
-  BufferFrame::BufferFrame(uint64_t pageId) : pageId(pageId) {
+  BufferFrame::BufferFrame(uint64_t pageId, uint64_t pageSize) : pageId(pageId) {
     pthread_rwlock_init(&latch, nullptr);
-    data = malloc(PAGE_SIZE);
+    data = malloc(pageSize);
     dirty = false;
   }
 

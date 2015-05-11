@@ -8,7 +8,6 @@
 #include <stdexcept>
 #include <system_error>
 #include <sstream>
-#include "buffer/definitions.h"
 #include "utils/checkedIO.h"
 
 namespace dbImpl {
@@ -42,8 +41,8 @@ namespace dbImpl {
       if(frame.dirty) {
           int segmentId = frame.pageId << segmentBits;
           int segmentFd = segmentFds.at(segmentId);
-          int offset = (frame.pageId & offsetBitMask)*PAGE_SIZE;
-          dbImpl::checkedPwrite(segmentFd, frame.getData(), PAGE_SIZE, offset);
+          int offset = (frame.pageId & offsetBitMask)*pageSize;
+          dbImpl::checkedPwrite(segmentFd, frame.getData(), pageSize, offset);
       }
       //nobody will be able to acquire this lock in the meantime
       //since we are holding the globalLock. We must unlock the frame
@@ -101,10 +100,10 @@ namespace dbImpl {
         // page IS dirty and needs to be flushed
         int segmentId = evictedFrame->pageId << segmentBits;
         int segmentFd = segmentFds.at(segmentId);
-        int offset = (evictedFrame->pageId & offsetBitMask)*PAGE_SIZE;
+        int offset = (evictedFrame->pageId & offsetBitMask)*pageSize;
         //release the global lock, write the page
         globalLock.unlock();
-        dbImpl::checkedPwrite(segmentFd, evictedFrame->getData(), PAGE_SIZE, offset);
+        dbImpl::checkedPwrite(segmentFd, evictedFrame->getData(), pageSize, offset);
         //Maybe we actually fail evicting this page (see below), so we
         //better mark it as pristine to avoid flushing it multiple times
         evictedFrame->dirty = false;
@@ -150,7 +149,7 @@ namespace dbImpl {
       // insert page into unordered_map
       frames.emplace(std::piecewise_construct,
                      std::forward_as_tuple(pageId),
-                     std::forward_as_tuple(pageId));
+                     std::forward_as_tuple(pageId, pageSize));
       BufferFrame& frame = frames.at(pageId);
       // inform twoQ about this access
       // DO NOT inform the twoQ about this access before inserting the BufferFrame
@@ -182,7 +181,7 @@ namespace dbImpl {
         segmentFds[segmentId] = segmentFd;
       }
 
-      int offset = (frame.pageId & offsetBitMask)*PAGE_SIZE;
+      int offset = (frame.pageId & offsetBitMask)*pageSize;
       // does this page already exist on the disk?
       struct stat segmentStat;
       if(fstat(segmentFd, &segmentStat) != 0) {
@@ -194,10 +193,10 @@ namespace dbImpl {
       }
       if(segmentStat.st_size > offset) {
         // load page from disk
-        dbImpl::checkedPread(segmentFd, frame.getData(), PAGE_SIZE, offset);
+        dbImpl::checkedPread(segmentFd, frame.getData(), pageSize, offset);
       } else {
         // initialize the memory
-        std::memset(frame.getData(), 0, PAGE_SIZE);
+        std::memset(frame.getData(), 0, pageSize);
       }
 
       // lock the frame with the actually requested lock level
@@ -229,5 +228,10 @@ namespace dbImpl {
     }
     frame.unlock();
   }
-  
+
+  const int BufferManager::pageSize = 4069;
+  const int BufferManager::segmentBits = 32;
+  const uint64_t BufferManager::offsetBitMask = (2l << (64-segmentBits)) - 1l;
+
+
 }

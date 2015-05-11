@@ -47,3 +47,8 @@ You can combine `od` with `sort` in order to sort the values in a file:
 ```
 od -A n -t u8 -w8 -v <fileName> | sort -n
 ```
+
+##Buffer manager
+
+A thread-safe buffer manager can be found in the `buffer` directory.
+It uses the 2Q strategy for page replacement.

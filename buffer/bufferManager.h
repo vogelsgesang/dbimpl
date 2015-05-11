@@ -1,7 +1,6 @@
 #ifndef __BUFFER_MANAGER_H
 #define __BUFFER_MANAGER_H
 
-
 #include <cstdint>
 #include <unordered_map>
 #include <mutex>
@@ -26,8 +25,13 @@ namespace dbImpl {
     // takes a BufferFrame and writes it on disk if it is dirty
     void unfixPage(BufferFrame& frame, bool isDirty);
 
+    //  the number of bits contained stored in one page
+    static const int pageSize;
 
   private:
+    static const int segmentBits;
+    static const uint64_t offsetBitMask;
+
     // maximum number of pages in buffer
     uint64_t size;
     // hash map storing the BufferFrames

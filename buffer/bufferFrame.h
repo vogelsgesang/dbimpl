@@ -1,4 +1,3 @@
-
 #ifndef __BUFFER_FRAME_H
 #define __BUFFER_FRAME_H
 
@@ -22,7 +21,7 @@ namespace dbImpl {
       uint64_t pageId;
       
       // constructor
-      BufferFrame(uint64_t pageId);
+      BufferFrame(uint64_t pageId, uint64_t bufferSize);
       // destructor
       virtual ~BufferFrame();
       // returns data from page
