@@ -25,13 +25,14 @@ namespace dbImpl {
     // takes a BufferFrame and writes it on disk if it is dirty
     void unfixPage(BufferFrame& frame, bool isDirty);
 
-    //  the number of bits contained stored in one page
+    // the number of bits stored in one page
     static const int pageSize;
 
-  private:
-    static const int segmentBits;
-    static const uint64_t offsetBitMask;
+    static uint64_t getSegmentIdForPageId(uint64_t pageId);
+    static uint64_t getPartIdForPageId(uint64_t pageId);
+    static uint64_t buildPageId(uint64_t segmentId, uint64_t partId);
 
+  private:
     // maximum number of pages in buffer
     uint64_t size;
     // hash map storing the BufferFrames

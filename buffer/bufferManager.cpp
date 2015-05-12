@@ -39,9 +39,9 @@ namespace dbImpl {
       //wait until everyone finished accessing this page
       frame.lock(true);
       if(frame.dirty) {
-          int segmentId = frame.pageId << segmentBits;
+          int segmentId = getSegmentIdForPageId(frame.pageId);
           int segmentFd = segmentFds.at(segmentId);
-          int offset = (frame.pageId & offsetBitMask)*pageSize;
+          int offset = getPartIdForPageId(frame.pageId)*pageSize;
           dbImpl::checkedPwrite(segmentFd, frame.getData(), pageSize, offset);
       }
       //nobody will be able to acquire this lock in the meantime
@@ -98,9 +98,9 @@ namespace dbImpl {
         frames.erase(evictedPageId);
       } else {
         // page IS dirty and needs to be flushed
-        int segmentId = evictedFrame->pageId << segmentBits;
+        int segmentId = getSegmentIdForPageId(evictedFrame->pageId);
         int segmentFd = segmentFds.at(segmentId);
-        int offset = (evictedFrame->pageId & offsetBitMask)*pageSize;
+        int offset = getPartIdForPageId(evictedFrame->pageId)*pageSize;
         //release the global lock, write the page
         globalLock.unlock();
         dbImpl::checkedPwrite(segmentFd, evictedFrame->getData(), pageSize, offset);
@@ -165,7 +165,7 @@ namespace dbImpl {
 
       //get the segment file's file descriptor
       //opened file descriptors are cached for performance reasons
-      uint64_t segmentId = pageId >> segmentBits;
+      uint64_t segmentId = getSegmentIdForPageId(pageId);
       int segmentFd;
       if (segmentFds.count(segmentId) == 1) { // segment file exists
         segmentFd = segmentFds.at(segmentId);
@@ -181,7 +181,7 @@ namespace dbImpl {
         segmentFds[segmentId] = segmentFd;
       }
 
-      int offset = (frame.pageId & offsetBitMask)*pageSize;
+      int offset = getPartIdForPageId(pageId)*pageSize;
       // does this page already exist on the disk?
       struct stat segmentStat;
       if(fstat(segmentFd, &segmentStat) != 0) {
@@ -229,9 +229,18 @@ namespace dbImpl {
     frame.unlock();
   }
 
-  const int BufferManager::pageSize = 4069;
-  const int BufferManager::segmentBits = 32;
-  const uint64_t BufferManager::offsetBitMask = (2l << (64-segmentBits)) - 1l;
+  const int BufferManager::pageSize = 4*1024;
 
+  uint64_t BufferManager::getSegmentIdForPageId(uint64_t pageId) {
+    return pageId >> 32;
+  }
+
+  uint64_t BufferManager::getPartIdForPageId(uint64_t pageId) {
+    return pageId & 0xffffffff;
+  }
+
+  uint64_t BufferManager::buildPageId(uint64_t segmentId, uint64_t partId) {
+    return (segmentId << 32) | partId;
+  }
 
 }
