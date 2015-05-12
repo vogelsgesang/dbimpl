@@ -1,5 +1,5 @@
-#ifndef __SQL_BOOL_HPP__
-#define __SQL_BOOL_HPP__
+#ifndef _SQL_BOOL_HPP_
+#define _SQL_BOOL_HPP_
 
 #include <cstdint>
 

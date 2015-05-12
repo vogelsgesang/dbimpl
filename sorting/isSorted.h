@@ -1,5 +1,5 @@
-#ifndef __IS_SORTED_HPP__
-#define __IS_SORTED_HPP__
+#ifndef _IS_SORTED_HPP_
+#define _IS_SORTED_HPP_
 
 #include <cstdint> //uint64_t
 

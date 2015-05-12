@@ -1,5 +1,5 @@
-#ifndef __BUFFER_FRAME_H
-#define __BUFFER_FRAME_H
+#ifndef _BUFFER_FRAME_H_
+#define _BUFFER_FRAME_H_
 
 #include <cstdint>
 #include "pthread.h"
@@ -43,4 +43,4 @@ namespace dbImpl {
   };
 }
 
-#endif //__BUFFER_FRAME_H
+#endif //_BUFFER_FRAME_H_

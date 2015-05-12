@@ -1,5 +1,5 @@
-#ifndef __CHECKED_IO_HPP__
-#define __CHECKED_IO_HPP__
+#ifndef _CHECKED_IO_HPP_
+#define _CHECKED_IO_HPP_
 
 #include <sys/types.h>
 #include <system_error>

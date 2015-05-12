@@ -1,5 +1,5 @@
-#ifndef __EXTERNAL_SORT_HPP__
-#define __EXTERNAL_SORT_HPP__
+#ifndef _EXTERNAL_SORT_HPP_
+#define _EXTERNAL_SORT_HPP_
 
 #include <cstdint> //uint64_t
 

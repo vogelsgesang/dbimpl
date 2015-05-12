@@ -1,5 +1,5 @@
-#ifndef __TWO_Q_HPP__
-#define __TWO_Q_HPP__
+#ifndef _TWO_Q_HPP_
+#define _TWO_Q_HPP_
 
 #include <unordered_map>
 #include <list>

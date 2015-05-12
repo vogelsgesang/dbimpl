@@ -1,5 +1,5 @@
-#ifndef __SEQUENCE_READER_HPP__
-#define __SEQUENCE_READER_HPP__
+#ifndef _SEQUENCE_READER_HPP_
+#define _SEQUENCE_READER_HPP_
 
 #include <iostream>
 #include <memory>

@@ -1,5 +1,5 @@
-#ifndef __SEQUENCE_WRITER_HPP__
-#define __SEQUENCE_WRITER_HPP__
+#ifndef _SEQUENCE_WRITER_HPP_
+#define _SEQUENCE_WRITER_HPP_
 
 #include <iostream>
 #include <memory>

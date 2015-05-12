@@ -1,5 +1,5 @@
-#ifndef __BUFFER_MANAGER_H
-#define __BUFFER_MANAGER_H
+#ifndef _BUFFER_MANAGER_H_
+#define _BUFFER_MANAGER_H_
 
 #include <cstdint>
 #include <unordered_map>
@@ -48,4 +48,4 @@ namespace dbImpl {
   };
 }
 
-#endif //__BUFFER_MANAGER_H
+#endif //_BUFFER_MANAGER_H_
