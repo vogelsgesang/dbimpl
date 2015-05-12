@@ -54,29 +54,7 @@ namespace dbImpl {
        */
       void update(uint64_t tid, const Record& r);
 
-      /**
-       * compactifies all pages and also tries to remove indirections
-       */
-      void optimize();
-
     protected:
-      /*
-       * compresses the number of free/required bytes given into
-       * a 4bit integer. This mapping is done using a combination
-       * of linear and logarithmic mapping of the given byte number
-       * relative to the pageSize.
-       */
-      uint8_t compressSpaceIndicator(uint32_t byteCount);
-
-      /*
-       * finds the first page which is able to store at least the
-       * given number of bytes.
-       */
-      uint64_t findFreeSpace(uint32_t requiredBytes);
-
-      //updates the free space indicated in the free space directory
-      uint64_t updateFreeSpace(uint64_t page, uint32_t freeBytes);
-
       /**
        * compactifies the page containing the given TID (without taking redirections into account)
        */

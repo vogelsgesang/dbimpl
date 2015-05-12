@@ -28,6 +28,10 @@ There are two types of test cases:
 All test cases are automatically executed by the continous integration service [TravisCI](https://travis-ci.org/vogelsgesang/dbimpl) as soon as new commits are pushed.
 Nevertheless, always test your commits before pushing them!
 
+##Unused code
+
+There is some code which I wrote but which is not used currently. You can find it in the `unused` directory.
+
 ##External sorting
 
 For the first assignment an external sort algorithm had to be implemented. We chose to implement a merge sort algorithm.

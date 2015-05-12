@@ -52,20 +52,4 @@ namespace dbImpl {
   SPSegment::SPSegment(BufferManager& bm, uint32_t segmentId)
     : bm(bm), segmentId(segmentId) {}
 
-  uint8_t SPSegment::compressSpaceIndicator(uint32_t byteCount) {
-    uint8_t relativeSize = byteCount * 255 / bm.pageSize;
-    if(relativeSize >= 128) {
-      //linear mapping for upper half
-      return relativeSize >> 4;
-    } else {
-      //logarithmic mapping for range < 128
-      uint8_t result = 0;
-      while(relativeSize) {
-        result++;
-        relativeSize >>= 1;
-      }
-      return result;
-    }
-  }
-
 }
