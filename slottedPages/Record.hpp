@@ -18,40 +18,30 @@ namespace dbImpl {
       // Copy Constructor: deleted
       Record(Record& t) = delete;
       // Move Constructor
-      Record(Record&& t);
+      Record(Record&& t) : len(t.len), data(t.data) {
+        t.data = nullptr;
+        t.len = 0;
+      }
       // Constructor
-      Record(unsigned len, const char* const ptr);
+      Record(unsigned len, const char* const ptr) : len(len) {
+        data = new char[len];
+        memcpy(data, ptr, len);
+      }
       // Destructor
-      ~Record();
+      ~Record() {
+        if(data != nullptr) {
+          delete data;
+        }
+      }
       // Get pointer to data
-      const char* getData() const;
+      const char* getData() const {
+        return data;
+      }
       // Get data size in bytes
-      unsigned getLen() const;
+      unsigned getLen() const {
+        return len;
+      }
   };
-
-  Record::Record(Record&& t) : len(t.len), data(t.data) {
-    t.data = nullptr;
-    t.len = 0;
-  }
-
-  Record::Record(unsigned len, const char* const ptr) : len(len) {
-    data = new char[len];
-    memcpy(data, ptr, len);
-  }
-
-  const char* Record::getData() const {
-    return data;
-  }
-
-  unsigned Record::getLen() const {
-    return len;
-  }
-
-  Record::~Record() {
-    if(data != nullptr) {
-      delete data;
-    }
-  }
 
 }
 
