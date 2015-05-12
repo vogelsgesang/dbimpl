@@ -1,52 +1,56 @@
-#ifndef H_Record_HPP
-#define H_Record_HPP
+#ifndef _RECORD_HPP_
+#define _RECORD_HPP_
 
 #include <cstring>
 #include <cstdlib>
 
-// A simple Record implementation
-class Record {
-   unsigned len;
-   char* data;
+namespace dbImpl {
 
-public:
-   // Assignment Operator: deleted
-   Record& operator=(Record& rhs) = delete;
-   // Copy Constructor: deleted
-   Record(Record& t) = delete;
-   // Move Constructor
-   Record(Record&& t);
-   // Constructor
-   Record(unsigned len, const char* const ptr);
-   // Destructor
-   ~Record();
-   // Get pointer to data
-   const char* getData() const;
-   // Get data size in bytes
-   unsigned getLen() const;
-};
+  // A simple Record implementation
+  class Record {
+    private:
+      unsigned len;
+      char* data;
 
-Record::Record(Record&& t) : len(t.len), data(t.data) {
-   t.data = nullptr;
-   t.len = 0;
-}
+    public:
+      // Assignment Operator: deleted
+      Record& operator=(Record& rhs) = delete;
+      // Copy Constructor: deleted
+      Record(Record& t) = delete;
+      // Move Constructor
+      Record(Record&& t);
+      // Constructor
+      Record(unsigned len, const char* const ptr);
+      // Destructor
+      ~Record();
+      // Get pointer to data
+      const char* getData() const;
+      // Get data size in bytes
+      unsigned getLen() const;
+  };
 
-Record::Record(unsigned len, const char* const ptr) : len(len) {
-   data = static_cast<char*>(malloc(len));
-   if (data)
-      memcpy(data, ptr, len);
-}
+  Record::Record(Record&& t) : len(t.len), data(t.data) {
+     t.data = nullptr;
+     t.len = 0;
+  }
 
-const char* Record::getData() const {
-   return data;
-}
+  Record::Record(unsigned len, const char* const ptr) : len(len) {
+     data = new char[len];
+     memcpy(data, ptr, len);
+  }
 
-unsigned Record::getLen() const {
-   return len;
-}
+  const char* Record::getData() const {
+     return data;
+  }
 
-Record::~Record() {
-   free(data);
+  unsigned Record::getLen() const {
+     return len;
+  }
+
+  Record::~Record() {
+     free(data);
+  }
+
 }
 
 #endif
