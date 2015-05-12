@@ -30,25 +30,27 @@ namespace dbImpl {
   };
 
   Record::Record(Record&& t) : len(t.len), data(t.data) {
-     t.data = nullptr;
-     t.len = 0;
+    t.data = nullptr;
+    t.len = 0;
   }
 
   Record::Record(unsigned len, const char* const ptr) : len(len) {
-     data = new char[len];
-     memcpy(data, ptr, len);
+    data = new char[len];
+    memcpy(data, ptr, len);
   }
 
   const char* Record::getData() const {
-     return data;
+    return data;
   }
 
   unsigned Record::getLen() const {
-     return len;
+    return len;
   }
 
   Record::~Record() {
-     free(data);
+    if(data != nullptr) {
+      delete data;
+    }
   }
 
 }
