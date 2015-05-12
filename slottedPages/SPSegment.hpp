@@ -7,6 +7,8 @@
 
 namespace dbImpl {
 
+  class BufferManager;
+
   /**
    * Accesses a segment using the slotted pages mechanism.
    *
@@ -25,9 +27,10 @@ namespace dbImpl {
       /*
        * actual constructor
        * parameters:
+       *  * bm: the buffer manager to be used
        *  * segmentId: which segment should be accessed using this SPSegment instance
        */
-      SPSegment(uint32_t segmentId);
+      SPSegment(BufferManager& bm, uint32_t segmentId);
 
       // inserts a new record and returns the tuple identifier of the stored data
       uint64_t insert(const Record& r);
