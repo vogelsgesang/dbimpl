@@ -77,15 +77,3 @@ TEST(ExternalSortTest, keepsDuplicate) {
   testSorting({1, 1, 3, 3}, 1<<20); //already sorted
   testSorting({10, 8, 10, 8, 7}, 1<<20); //unsorted
 }
-
-TEST(DISABLED_ExternalSortTest, sortValuesExternally) {
-  //TODO: implement
-}
-
-TEST(DISABLED_ExternalSortTest, sorts5GB) {
-  //TODO: implement
-}
-
-TEST(DISABLED_ExternalSortTest, sorts20GB) {
-  //TODO: implement
-}
