@@ -26,7 +26,7 @@ namespace dbImpl {
     void unfixPage(BufferFrame& frame, bool isDirty);
 
     // the number of bits stored in one page
-    static const int pageSize;
+    static const uint32_t pageSize;
 
     static uint64_t getSegmentIdForPageId(uint64_t pageId);
     static uint64_t getPartIdForPageId(uint64_t pageId);

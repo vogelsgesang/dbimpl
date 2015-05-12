@@ -229,7 +229,7 @@ namespace dbImpl {
     frame.unlock();
   }
 
-  const int BufferManager::pageSize = 4*1024;
+  const uint32_t BufferManager::pageSize = 16*1024;
 
   uint64_t BufferManager::getSegmentIdForPageId(uint64_t pageId) {
     return pageId >> 32;
