@@ -1,11 +1,12 @@
 #include "RelationSchema.h"
 #include <string>
 #include <sstream>
+#include <cstring>
 
-namespace dbimpl {
+namespace dbImpl {
 
 
-  static std::string serializeType(const Types::Tag& type) {
+  static std::string serializeType(const Types::Tag type) {
     switch(type) {
       case Types::Tag::Integer:
          return "Integer";
@@ -14,7 +15,8 @@ namespace dbimpl {
          return "Char";
       }
    }
-   throw;
+   std::cerr "could not serialize Type" << std::endl;
+   return "";
 }
 
   static Types::Tag loadType(std::string typeInfo) {
@@ -23,7 +25,7 @@ namespace dbimpl {
 	if(typeInfo.compare("Char") == 0)
 		return Types::Tag::Char;
 	std::cerr << "Type could not be loaded: " << typeInfo;
-	throw;
+	return nullptr;
 }
 
   static RelationSchema RelationSchema::loadFromRecord(Record& record) {
@@ -31,7 +33,7 @@ namespace dbimpl {
     char* data = record.getData();
     if (data == NULL) {
       std::cerr << "Read data of relation schema is null" << std::endl;
-      return NULL;
+      throw;
 
     }
 
@@ -75,12 +77,14 @@ namespace dbimpl {
     
 
     
-    
+    //TODO Generate RelationSchema
     RelationSchema schema = new RelationSchema(name);
-    schema.attributes= attributes;
-    schema.primaryKey = primaryKey;
-    schema.size = size;
-    schema.segmentID = segmentID;
+    //schema.attributes= attributes;
+    //schema.primaryKey = primaryKey;
+    //schema.size = size;
+    //schema.segmentID = segmentID;
+    
+    return schema;
 
     
 
@@ -102,10 +106,13 @@ namespace dbimpl {
     }
     recData << std::endl;
 
-    recData.seekg(0, ios::end);
-    int len = recData.tellg();
+    recData.seekg(0, std::ios::end);
+    unsigned len = recData.tellg();
     // create new Record
-    return new Record(len, recData);
+    //TODO convert recData to const char*
+    char* data = new char[1];
+    return new Record(len, data);
+    
 
 
   }
