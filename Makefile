@@ -77,11 +77,16 @@ BUFFER_OBJS=buffer/bufferManager.o buffer/bufferFrame.o cli/buffertest.o utils/c
 bin/buffertest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BUFFER_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	
+SCHEMA_OBJS=schema/RelationSchema.o cli/schematest.o
+bin/schematest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SCHEMA_OBJS))
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 RUNTESTS_OBJS=gtest_main.a $(patsubst %.cpp, %.o, $(shell find tests/ -iname *Test.cpp -type f)) \
               sorting/externalSort.o sorting/isSorted.o utils/checkedIO.o \
               logic/sqlBool.o buffer/bufferManager.o buffer/bufferFrame.o \
-              slottedPages/SPSegment.o
+              slottedPages/SPSegment.o schema/RelationSchema.o
 bin/runTests$(BIN_SUFFIX): CPPFLAGS+= -isystem $(GTEST_DIR)/include
 #the dependency on the _directory_ containing the test specifications is neccessary in
 #order to handle deleted files correctly

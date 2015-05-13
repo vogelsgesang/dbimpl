@@ -4,6 +4,28 @@
 
 namespace dbimpl {
 
+
+  static std::string serializeType(const Types::Tag& type) {
+    switch(type) {
+      case Types::Tag::Integer:
+         return "Integer";
+     
+      case Types::Tag::Char: {
+         return "Char";
+      }
+   }
+   throw;
+}
+
+  static Types::Tag loadType(std::string typeInfo) {
+    if(typeInfo.compare("Integer") == 0)
+      return Types::Tag::Integer;
+	if(typeInfo.compare("Char") == 0)
+		return Types::Tag::Char;
+	std::cerr << "Type could not be loaded: " << typeInfo;
+	throw;
+}
+
   static RelationSchema RelationSchema::loadFromRecord(Record& record) {
 
     char* data = record.getData();
@@ -32,9 +54,10 @@ namespace dbimpl {
     for(int i = 0; i < attSize; i++){
       AttributeDescriptor a = new AttributeDescriptor;
       a.name << ss;
-      a.type << ss;
+      temp << ss;
+	  loadType(temp);
       a.len << ss;
-      std::string temp << ss;
+      temp << ss;
       if(temp.compare("1") == 0){
         a.notNull = true;
       }
@@ -71,7 +94,7 @@ namespace dbimpl {
     recData << name << " " << size << " " << segmentID << " " << attributes.size() << " " << primaryKey.size() << std::endl;
     //Attributes
     for (const AttributeDescriptor& a : attributes) {
-      recData << a.name << " " << a.type << " " << a.len << " " << (a.notNull ? "1" : "0") << std::endl;
+      recData << a.name << " " << serializeType(a.type) << " " << a.len << " " << (a.notNull ? "1" : "0") << std::endl;
     }
     for (unsigned key : primaryKey) {
       recData << key << " ";

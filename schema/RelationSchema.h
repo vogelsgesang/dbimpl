@@ -44,6 +44,7 @@ namespace dbImpl {
     std::vector<AttributeDescriptor> attributes;
     std::vector<unsigned> primaryKey;
     uint64_t size; //[in pages]
+	uint64_t segmentID;
   };
 
 }
