@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <cstdint> //uint64_t
 #include <slottedPages/Record.hpp>
 
 namespace dbImpl {
@@ -37,10 +38,12 @@ namespace dbImpl {
     Record serializeToRecord();
 
     RelationSchema(const std::string& name) : name(name) {}
+    
 
     std::string name;
     std::vector<AttributeDescriptor> attributes;
     std::vector<unsigned> primaryKey;
+    uint64_t size; //[in pages]
   };
 
 }
