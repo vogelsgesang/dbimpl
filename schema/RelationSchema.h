@@ -29,9 +29,9 @@ namespace dbImpl {
    */
   struct RelationSchema {
     /*
-     * loads a schmema from a Record
+     * loads a schema from a Record
      */
-    static RelationSchema loadFromRecord(Record& record);
+    RelationSchema* loadFromRecord(Record& record);
     /*
      * serializes a schema into a Record
      */
