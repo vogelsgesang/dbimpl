@@ -17,34 +17,51 @@ namespace dbImpl {
   }
 
   struct AttributeDescriptor {
-     std::string name;
-     Types::Tag type;
-     unsigned len;
-     bool notNull;
-     AttributeDescriptor() : len(~0), notNull(true) {}
+    std::string name;
+    Types::Tag type;
+    unsigned len;
+    bool notNull;
+
+    AttributeDescriptor() : len(~0), notNull(true) {}
+    AttributeDescriptor(std::string name, Types::Tag type, unsigned len = ~0, bool notNull = false)
+      : name(name), type(type), len(len), notNull(notNull) {}
   };
 
   /**
    * represents the schema of one relation
    */
   struct RelationSchema {
+    RelationSchema() {}
+
     /*
      * loads a schema from a Record
      */
-    RelationSchema* loadFromRecord(Record& record);
+    explicit RelationSchema(Record& record);
+
+    RelationSchema(
+        const std::string& name,
+        std::vector<AttributeDescriptor> attributes,
+        std::vector<unsigned> primaryKeyIdcs,
+        uint32_t segmentID,
+        uint64_t size
+      )
+      : name(name),
+        attributes(attributes),
+        primaryKey(primaryKeyIdcs),
+        segmentID(segmentID),
+        size(size)
+      {}
+
     /*
      * serializes a schema into a Record
      */
-    Record serializeToRecord();
-
-    RelationSchema(const std::string& name) : name(name) {}
-    
+    Record serializeToRecord() const;
 
     std::string name;
     std::vector<AttributeDescriptor> attributes;
     std::vector<unsigned> primaryKey;
+    uint32_t segmentID;
     uint64_t size; //[in pages]
-	uint64_t segmentID;
   };
 
 }
