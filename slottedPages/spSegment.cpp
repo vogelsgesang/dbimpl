@@ -75,8 +75,8 @@ namespace dbImpl {
       //no free slot found? => allocate a new one.
       header->nrAllocatedSlots++;
     }
-    header->firstFreeSlot++;
     uint8_t slotNr = header->firstFreeSlot;
+    header->firstFreeSlot++;
     emplaceContents(frame, slotNr, r);
     bm.unfixPage(frame, true);
     //build and return the TID
