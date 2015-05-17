@@ -88,7 +88,23 @@ RelationSchema::RelationSchema(Record& record) {
 }
 
 Record RelationSchema::serializeToRecord() const {
-  char* data = new char[100];
+  uint64_t memSize = 0;
+  memSize += name.size()+1;
+  memSize += sizeof(size);
+  memSize += sizeof(segmentID);
+  memSize += sizeof(uint64_t)*2; //Attribute SIze + Primary Key Size
+
+  for (const AttributeDescriptor& a : attributes) {
+    memSize += a.name.size()+1;
+    memSize += sizeof(char);
+    memSize += sizeof(a.len);
+    memSize += sizeof(bool);
+  }
+
+  uint64_t keySize = primaryKey.size();
+  memSize += keySize * sizeof(unsigned);
+
+  char* data = new char[memSize];
   char* curPos = data;
 
   strcpy(curPos, name.c_str());
@@ -104,7 +120,7 @@ Record RelationSchema::serializeToRecord() const {
   memcpy(curPos, &attSize, sizeof(attSize));
   curPos += sizeof(attSize) + 1;
 
-  uint64_t keySize = primaryKey.size();
+
   memcpy(curPos, &keySize, sizeof(keySize));
   curPos += sizeof(keySize) + 1;
 
