@@ -49,6 +49,10 @@ namespace dbImpl {
       uint8_t slotNr : 8;
     } interpreted;
     uint64_t opaque;
+
+    TupleIdentifier() {}
+    TupleIdentifier(uint64_t tid)
+      : opaque(tid) {}
   };
 
 
@@ -60,10 +64,6 @@ namespace dbImpl {
     //get a page for this record
     BufferFrame& frame = getFrameForSize(r.getLen() + sizeof(SlotDescriptor));
     SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
-    //compactify if necessary
-    if(header->dataStart - sizeof(SPHeader) - header->nrAllocatedSlots * sizeof(SlotDescriptor) < r.getLen() + sizeof(SlotDescriptor)) {
-      compactify(frame);
-    }
     SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
     //allocate a slot descriptor
     //try to find one which was already allocated
@@ -76,13 +76,7 @@ namespace dbImpl {
     }
     header->firstFreeSlot++;
     uint8_t slotNr = header->firstFreeSlot;
-    SlotDescriptor* slotDescriptor = &slots[slotNr];
-    //update the header & fill in the slot's descriptor
-    header->dataStart -= r.getLen();
-    header->freeSpace -= r.getLen();
-    slotDescriptor->inplace = SlotDescriptor::InplaceDescriptor(header->dataStart, r.getLen());
-    //save record
-    memcpy(frame.getData() + slotDescriptor->inplace.offset, r.getData(), r.getLen());
+    emplaceContents(frame, slotNr, r);
     bm.unfixPage(frame, true);
     //build and return the TID
     TupleIdentifier tid;
@@ -93,10 +87,12 @@ namespace dbImpl {
 
 
   void SPSegment::remove(uint64_t opaqueTid) {
-    TupleIdentifier tid;
-    tid.opaque = opaqueTid;
+    TupleIdentifier tid (opaqueTid);
+    if(bm.getSegmentIdForPageId(tid.interpreted.pageId) != segmentId) {
+      throw std::runtime_error("TID does not belong to the segment managed by this SPSegment instance");
+    }
     //load page
-    BufferFrame& frame = bm.fixPage(tid.interpreted.pageId, false);
+    BufferFrame& frame = bm.fixPage(tid.interpreted.pageId, true);
     //obtain pointers to header & slot descriptors
     SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
     SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
@@ -109,7 +105,7 @@ namespace dbImpl {
     SlotDescriptor slot = slots[slotNr];
     if(!slot.isRedirection() && slot.inplace.offset == 0) {
       bm.unfixPage(frame, false);
-      throw std::runtime_error("trying to remove unallocated slot");
+      throw std::runtime_error("trying to remove invalid slot");
     }
     //clear the slot descriptor on this page by setting offset and len to 0
     slots[slotNr].inplace = SlotDescriptor::InplaceDescriptor(0,0);
@@ -127,10 +123,9 @@ namespace dbImpl {
 
 
   Record SPSegment::lookup(uint64_t opaqueTid) {
-    TupleIdentifier tid;
-    tid.opaque = opaqueTid;
+    TupleIdentifier tid (opaqueTid);
     if(bm.getSegmentIdForPageId(tid.interpreted.pageId) != segmentId) {
-      throw std::runtime_error("given TID does not belong to the segment managed by this SPSegment instance");
+      throw std::runtime_error("TID does not belong to the segment managed by this SPSegment instance");
     }
     //load page
     BufferFrame& frame = bm.fixPage(tid.interpreted.pageId, false);
@@ -156,34 +151,84 @@ namespace dbImpl {
         throw std::runtime_error("trying to lookup invalid slot");
       }
       //load data into record
-      uint8_t* data = frame.getData() + slot.inplace.offset; //TODO: offset if migrated page
-      Record r(slot.inplace.len, data);
+      uint8_t* data = frame.getData() + slot.inplace.offset;
+      uint32_t len = slot.inplace.len;
+      if(slot.isMigratedSlot()) {
+        data += sizeof(uint64_t);
+        len  -= sizeof(uint64_t);
+      }
+      Record r(len, data);
       bm.unfixPage(frame, false);
       return r;
     }
   }
 
-/*
-  void SPSegment::update(uint64_t tid, const Record& r) {
-    //if fits onto own page
-    //  if is redirected
-    //    free guest slot
-    //  if must be compactified
-    //    compactify
-    //  store data on current page
-    //else
-    //  if is not redirected
-    //    store using insert(...)
-    //    store redirection
-    //  else
-    //    if updated value fits on guest page
-    //      update data on guest page
-    //    else
-    //      free guest slot
-    //      store using insert(...)
-    //      update redirection
+
+  void SPSegment::update(uint64_t opaqueTid, const Record& r) {
+    TupleIdentifier tid(opaqueTid);
+    if(bm.getSegmentIdForPageId(tid.interpreted.pageId) != segmentId) {
+      throw std::runtime_error("TID does not belong to the segment managed by this SPSegment instance");
+    }
+    //load page
+    BufferFrame& frame = bm.fixPage(tid.interpreted.pageId, true);
+    //obtain pointers to header & slot descriptors
+    SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
+    SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
+    //check slot number
+    uint8_t slotNr = tid.interpreted.slotNr;
+    if(slotNr > header->nrAllocatedSlots) {
+      bm.unfixPage(frame, false);
+      throw std::runtime_error("slot id above number of allocated slots on page");
+    }
+    SlotDescriptor slot = slots[slotNr];
+    if(!slot.isRedirection() && slot.inplace.offset == 0) {
+      bm.unfixPage(frame, false);
+      throw std::runtime_error("trying to update invalid slot");
+    }
+    //free the memory if currently stored on own page
+    SlotDescriptor* slotDescriptor = &slots[slotNr];
+    if(!slotDescriptor->isRedirection()) {
+      slotDescriptor->inplace = SlotDescriptor::InplaceDescriptor(0,0);
+      header->freeSpace += slotDescriptor->inplace.len;
+    }
+    //fits onto own page?
+    if(header->freeSpace >= r.getLen()) {
+      SlotDescriptor originalDescriptor = *slotDescriptor;
+      emplaceContents(frame, slotNr, r);
+      bm.unfixPage(frame, true);
+      //if the page was migrated, free the space on the guest page
+      if(originalDescriptor.isRedirection()) {
+        remove(originalDescriptor.redirectionTid);
+      }
+    } else {
+      //is redirected?
+      if(slotDescriptor->isRedirection()) {
+        //load the guest page
+        TupleIdentifier guestTid(slotDescriptor->redirectionTid);
+        BufferFrame& guestFrame = bm.fixPage(guestTid.interpreted.pageId, false);
+        SPHeader* guestHeader = reinterpret_cast<SPHeader*>(guestFrame.getData());
+        SlotDescriptor* guestSlots = reinterpret_cast<SlotDescriptor*> (guestHeader + 1);
+        uint8_t guestSlotNr = guestTid.interpreted.slotNr;
+        //free the currently occupied space
+        guestSlots[guestSlotNr].inplace = SlotDescriptor::InplaceDescriptor(0,0);
+        header->freeSpace += slotDescriptor->inplace.len;
+        //fits onto guest page?
+        if(guestHeader->freeSpace >= r.getLen()) {
+          emplaceContents(guestFrame, guestSlotNr, r); //TODO: mark as migrated
+          bm.unfixPage(guestFrame, true);
+          bm.unfixPage(frame, false);
+        } else {
+          bm.unfixPage(guestFrame, true);
+          //insert somewhere else and store a redirection
+          slotDescriptor->redirectionTid = insert(r); //TODO: mark as migrated
+        }
+      } else {
+        //not redirected so far...
+        //insert somewhere else and store a redirection
+        slotDescriptor->redirectionTid = insert(r); //TODO: mark as migrated
+      }
+    }
   }
-*/
 
   BufferFrame& SPSegment::getFrameForSize(uint64_t size) {
     if(size > BufferManager::pageSize - sizeof(SPHeader)) {
@@ -214,6 +259,22 @@ namespace dbImpl {
       }
     }
     throw std::runtime_error("No page within SPSegment found");
+  }
+
+
+  void SPSegment::emplaceContents(BufferFrame& frame, uint8_t slotNr, const Record& r) {
+    SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
+    SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
+    //if neccessary: compacitify
+    if(header->dataStart - sizeof(SPHeader) - header->nrAllocatedSlots * sizeof(SlotDescriptor) < r.getLen()) {
+      compactify(frame);
+    }
+    //update header and write slotDescriptor
+    header->dataStart -= r.getLen();
+    header->freeSpace -= r.getLen();
+    slots[slotNr].inplace = SlotDescriptor::InplaceDescriptor(header->dataStart, r.getLen());
+    //write data
+    memcpy(frame.getData() + slots[slotNr].inplace.offset, r.getData(), r.getLen());
   }
 
 
