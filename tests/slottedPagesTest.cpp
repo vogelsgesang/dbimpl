@@ -9,7 +9,7 @@ TEST(SlottedPagesTest, storesRecords) {
   dbImpl::SPSegment spSegment(bm, 1);
   
   std::string testStr("Test");
-  dbImpl::Record testRecord(testStr.length(), testStr.c_str());
+  dbImpl::Record testRecord(testStr.length(), reinterpret_cast<const uint8_t*>(testStr.c_str()));
   uint64_t tid = spSegment.insert(testRecord);
 
   dbImpl::Record readRecord = spSegment.lookup(tid);
