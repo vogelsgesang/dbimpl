@@ -221,6 +221,9 @@ namespace dbImpl {
     SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
     SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
 
+    std::unique_ptr<uint8_t[]> copiedData(new uint8_t[BufferManager::pageSize]);
+    std::memcpy(copiedData.get(), frame.getData(), BufferManager::pageSize);
+
     //reset dataStart to the end of the page
     header->dataStart = BufferManager::pageSize;
     //put all the records to the end of the page
@@ -228,7 +231,7 @@ namespace dbImpl {
       if(slots[slotNr].isRedirection()) {
         uint32_t newOffset = header->dataStart;
         header->dataStart -= slots[slotNr].inplace.len;
-        std::memmove(frame.getData() + newOffset, frame.getData() + slots[slotNr].inplace.offset, slots[slotNr].inplace.len);
+        std::memcpy(frame.getData() + newOffset, copiedData.get() + slots[slotNr].inplace.offset, slots[slotNr].inplace.len);
         slots[slotNr].inplace.offset = newOffset;
       }
     }
