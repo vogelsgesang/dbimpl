@@ -51,8 +51,10 @@ namespace dbImpl {
     uint64_t opaque;
   };
 
+
   SPSegment::SPSegment(BufferManager& bm, uint32_t segmentId)
     : bm(bm), segmentId(segmentId) {}
+
 
   uint64_t SPSegment::insert(const Record& r) {
     //get a page for this record
@@ -89,14 +91,39 @@ namespace dbImpl {
     return tid.opaque;
   }
 
-  /*
-  void SPSegment::remove(uint64_t tid) {
+
+  void SPSegment::remove(uint64_t opaqueTid) {
+    TupleIdentifier tid;
+    tid.opaque = opaqueTid;
     //load page
-    //if is redirection
-    //  remove(redirected)
-    //update slot descriptor to offset = 0; len = 0
+    BufferFrame& frame = bm.fixPage(tid.interpreted.pageId, false);
+    //obtain pointers to header & slot descriptors
+    SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
+    SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
+    //check slot number
+    uint8_t slotNr = tid.interpreted.slotNr;
+    if(slotNr > header->nrAllocatedSlots) {
+      bm.unfixPage(frame, false);
+      throw std::runtime_error("slot id above number of allocated slots on page");
+    }
+    SlotDescriptor slot = slots[slotNr];
+    if(!slot.isRedirection() && slot.inplace.offset == 0) {
+      bm.unfixPage(frame, false);
+      throw std::runtime_error("trying to remove unallocated slot");
+    }
+    //clear the slot descriptor on this page by setting offset and len to 0
+    slots[slotNr].inplace = SlotDescriptor::InplaceDescriptor(0,0);
+    //deallocate the space
+    if(!slot.isRedirection()) {
+      header->freeSpace += slot.inplace.len;
+    }
+    bm.unfixPage(frame, true);
+    //if it was a redirection, also clear the redirected record
+    if(slot.isRedirection()) {
+      remove(slot.redirectionTid);
+    }
   }
-  */
+
 
   Record SPSegment::lookup(uint64_t opaqueTid) {
     TupleIdentifier tid;
@@ -109,12 +136,12 @@ namespace dbImpl {
     uint32_t slotNr = tid.interpreted.slotNr;
     //obtain pointers to header & slot descriptors
     SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
+    SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
     //check slot number
     if(slotNr > header->nrAllocatedSlots) {
       bm.unfixPage(frame, false);
       throw std::runtime_error("slot id above number of allocated slots on page");
     }
-    SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
     SlotDescriptor slot = slots[slotNr];
     //redirected?
     if(slot.isRedirection()) {
@@ -125,7 +152,7 @@ namespace dbImpl {
       //valid slot?
       if(slot.inplace.offset == 0) {
         bm.unfixPage(frame, false);
-        throw std::runtime_error("slot id above number of allocated slots on page");
+        throw std::runtime_error("trying to lookup invalid slot");
       }
       //load data into record
       char* data = reinterpret_cast<char*> (frame.getData()) + slot.inplace.offset;
@@ -134,6 +161,7 @@ namespace dbImpl {
       return r;
     }
   }
+
 /*
   void SPSegment::update(uint64_t tid, const Record& r) {
     //if fits onto own page
@@ -155,6 +183,7 @@ namespace dbImpl {
     //      update redirection
   }
 */
+
   BufferFrame& SPSegment::getFrameForSize(uint64_t size) {
     if(size > BufferManager::pageSize - sizeof(SPHeader)) {
       throw std::runtime_error("Record larger than maximum supported record size.");
