@@ -18,7 +18,7 @@ namespace dbImpl {
       //deleted operator= => non copyable
       const BufferFrame& operator=(const BufferFrame&) = delete;
 
-      uint64_t pageId;
+      const uint64_t pageId;
       
       // constructor
       BufferFrame(uint64_t pageId, uint64_t bufferSize);

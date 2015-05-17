@@ -8,6 +8,7 @@
 namespace dbImpl {
 
   class BufferManager;
+  class BufferFrame;
 
   /**
    * Accesses a segment using the slotted pages mechanism.
@@ -56,9 +57,16 @@ namespace dbImpl {
 
     protected:
       /**
-       * compactifies the page containing the given TID (without taking redirections into account)
+       * compactifies the page
        */
-      void compacitifyPage(uint64_t tid);
+      void compactify(BufferFrame& frame);
+
+      /**
+       * returns the first page which is able to store the required amount of data.
+       * The returned BufferFrame is already locked exclusively.
+       * If no such page exists currently, a new page will be allocated.
+       */
+      BufferFrame& getFrameForSize(uint64_t size);
 
       BufferManager& bm;
       uint32_t segmentId;
