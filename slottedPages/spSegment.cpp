@@ -1,4 +1,4 @@
-#include "slottedPages/SPSegment.h"
+#include "slottedPages/spSegment.h"
 #include "buffer/bufferManager.h"
 #include <stdexcept>
 #include <cstring>

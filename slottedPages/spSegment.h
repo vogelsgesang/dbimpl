@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#include "slottedPages/Record.hpp"
+#include "slottedPages/record.h"
 
 namespace dbImpl {
 

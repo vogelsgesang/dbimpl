@@ -2,7 +2,7 @@
 #include <string>
 
 #include "buffer/bufferManager.h"
-#include "slottedPages/SPSegment.h"
+#include "slottedPages/spSegment.h"
 
 TEST(SlottedPagesTest, storesRecords) {
   dbImpl::BufferManager bm(100);
