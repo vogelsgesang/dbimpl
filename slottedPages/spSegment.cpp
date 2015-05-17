@@ -2,6 +2,7 @@
 #include "buffer/bufferManager.h"
 #include <stdexcept>
 #include <cstring>
+#include <memory>
 
 namespace dbImpl {
 
