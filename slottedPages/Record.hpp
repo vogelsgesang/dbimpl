@@ -1,6 +1,7 @@
 #ifndef _RECORD_HPP_
 #define _RECORD_HPP_
 
+#include <cstdint>
 #include <cstring>
 #include <cstdlib>
 
@@ -23,7 +24,7 @@ namespace dbImpl {
         t.len = 0;
       }
       // Constructor
-      Record(unsigned len, const char* const ptr) : len(len) {
+      Record(unsigned len, const uint8_t* const ptr) : len(len) {
         data = new char[len];
         memcpy(data, ptr, len);
       }

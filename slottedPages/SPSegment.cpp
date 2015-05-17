@@ -70,7 +70,7 @@ namespace dbImpl {
     while(header->firstFreeSlot < header->nrAllocatedSlots && slots[header->firstFreeSlot].inplace.offset != 0) {
       header->firstFreeSlot++;
     }
-    if(header->firstFreeSlot >= header->nrAllocatedSlots) {
+    if(header->firstFreeSlot == header->nrAllocatedSlots) {
       //no free slot found? => allocate a new one.
       header->nrAllocatedSlots++;
     }
@@ -82,7 +82,7 @@ namespace dbImpl {
     header->freeSpace -= r.getLen();
     slotDescriptor->inplace = SlotDescriptor::InplaceDescriptor(header->dataStart, r.getLen());
     //save record
-    memcpy(reinterpret_cast<uint8_t*>(frame.getData()) + slotDescriptor->inplace.offset, r.getData(), r.getLen());
+    memcpy(frame.getData() + slotDescriptor->inplace.offset, r.getData(), r.getLen());
     bm.unfixPage(frame, true);
     //build and return the TID
     TupleIdentifier tid;
@@ -155,7 +155,7 @@ namespace dbImpl {
         throw std::runtime_error("trying to lookup invalid slot");
       }
       //load data into record
-      char* data = reinterpret_cast<char*> (frame.getData()) + slot.inplace.offset;
+      uint8_t* data = frame.getData() + slot.inplace.offset; //TODO: offset if migrated page
       Record r(slot.inplace.len, data);
       bm.unfixPage(frame, false);
       return r;
@@ -215,8 +215,22 @@ namespace dbImpl {
     throw std::runtime_error("No page within SPSegment found");
   }
 
-  void SPSegment::compactify(BufferFrame&) {
-    throw std::runtime_error("compatify not implemented");
+
+  void SPSegment::compactify(BufferFrame& frame) {
+    SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
+    SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
+
+    //reset dataStart to the end of the page
+    header->dataStart = BufferManager::pageSize;
+    //put all the records to the end of the page
+    for(int slotNr = header->nrAllocatedSlots-1; slotNr >= 0; slotNr--) {
+      if(slots[slotNr].isRedirection()) {
+        uint32_t newOffset = header->dataStart;
+        header->dataStart -= slots[slotNr].inplace.len;
+        std::memmove(frame.getData() + newOffset, frame.getData() + slots[slotNr].inplace.offset, slots[slotNr].inplace.len);
+        slots[slotNr].inplace.offset = newOffset;
+      }
+    }
   }
 
 }
