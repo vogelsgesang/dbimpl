@@ -22,8 +22,22 @@ namespace dbImpl {
       unsigned getLine() { return line; }
   };
 
-  //parses an SQL schema definition from a stream
-  std::vector<RelationSchema> parseSqlSchema(std::istream inStream);
+  struct SchemaParser {
+     std::vector<RelationSchema> parse(std::istream& in);
+
+     private:
+       enum class State : unsigned {
+         Init, Create, Table, CreateTableBegin, CreateTableEnd,
+         TableName, Primary, Key, KeyListBegin, KeyName, KeyListEnd,
+         AttributeName, AttributeTypeInt, AttributeTypeChar,
+         CharBegin, CharValue, CharEnd, AttributeTypeNumeric, NumericBegin,
+         NumericValue1, NumericSeparator, NumericValue2, NumericEnd,
+         Not, Null, Separator, Semicolon
+       };
+       State state = State::Init;
+
+       void nextToken(unsigned line, const std::string& token, std::vector<RelationSchema>* schema);
+  };
 
 }
 

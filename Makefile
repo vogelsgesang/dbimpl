@@ -32,7 +32,7 @@ endif
 OBJ_DIR=build/$(BUILD_TYPE)
 
 .PHONY: all
-all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest)
+all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema)
 
 .PHONY: test
 test: all
@@ -78,8 +78,8 @@ bin/buffertest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BUFFER_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	
-SCHEMA_OBJS=schema/RelationSchema.o cli/schematest.o
-bin/schematest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SCHEMA_OBJS))
+PARSE_SCHEMA_OBJS=schema/RelationSchema.o schema/SchemaParser.o cli/parseSchema.o
+bin/parseSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(PARSE_SCHEMA_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 

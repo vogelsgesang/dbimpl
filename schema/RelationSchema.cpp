@@ -9,10 +9,10 @@ namespace dbImpl {
 
 char serializeType(const TypeTag type) {
   switch (type) {
-  case TypeTag::Integer:
-    return 'i';
-  case TypeTag::Char:
-    return 'c';
+    case TypeTag::Integer:
+      return 'i';
+    case TypeTag::Char:
+      return 'c';
   }
   throw std::runtime_error("could not serialize attribute type");
 }
@@ -153,6 +153,41 @@ Record RelationSchema::serializeToRecord() const {
   }
 
   return Record(curPos - data, data);
+}
+
+
+std::ostream& operator<< (std::ostream& out, const TypeTag& type) {
+  switch (type) {
+    case TypeTag::Integer:
+      out << "INTEGER";
+    case TypeTag::Char:
+      out << "CHAR";
+  }
+  return out;
+}
+
+std::ostream& operator<< (std::ostream& out, const AttributeDescriptor& attr) {
+  out << attr.name << attr.type;
+  if(attr.type == TypeTag::Char) {
+    out << "(" << attr.len << ")";
+  }
+  if(attr.notNull) {
+    out << " NOT NULL";
+  }
+  return out;
+}
+
+std::ostream& operator<< (std::ostream& out, const RelationSchema& schema) {
+  out << "TABLE " << schema.name << ":\n";
+  for(auto attr : schema.attributes) {
+    out << "  " << attr << "\n";
+  }
+  out << "  primary key:";
+  for(auto keyId : schema.primaryKey) {
+    out << " " << keyId;
+  }
+  out << "\n";
+  return out;
 }
 
 } //namespace dbimpl

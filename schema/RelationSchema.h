@@ -18,8 +18,7 @@ namespace dbImpl {
     std::string name;
     TypeTag type;
     unsigned len;
-    bool notNull;
-
+    bool notNull; 
     AttributeDescriptor() : len(~0), notNull(true) {}
     AttributeDescriptor(std::string name, TypeTag type, unsigned len = ~0, bool notNull = false)
       : name(name), type(type), len(len), notNull(notNull) {}
@@ -38,10 +37,10 @@ namespace dbImpl {
 
     RelationSchema(
         const std::string& name,
-        std::vector<AttributeDescriptor> attributes,
-        std::vector<unsigned> primaryKeyIdcs,
-        uint32_t segmentID,
-        uint64_t size
+        std::vector<AttributeDescriptor> attributes = {},
+        std::vector<unsigned> primaryKeyIdcs = {},
+        uint32_t segmentID = 0,
+        uint64_t size = 0
       )
       : name(name),
         attributes(attributes),
@@ -61,6 +60,10 @@ namespace dbImpl {
     uint32_t segmentID;
     uint64_t size; //[in pages]
   };
+
+  std::ostream& operator<< (std::ostream& out, const TypeTag& type);
+  std::ostream& operator<< (std::ostream& out, const AttributeDescriptor& attr);
+  std::ostream& operator<< (std::ostream& out, const RelationSchema& schema);
 
 }
 
