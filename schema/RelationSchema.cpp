@@ -3,7 +3,6 @@
 #include <sstream>
 #include <cstring>
 #include <vector>
-#include <iostream>
 #include <stdexcept>
 
 namespace dbImpl {
@@ -39,18 +38,18 @@ RelationSchema::RelationSchema(Record& record) {
   curOffset += name.size() + 1;
 
   memcpy(&size, data + curOffset, sizeof(size));
-  curOffset += sizeof(size) + 1;
+  curOffset += sizeof(size);
 
   memcpy(&segmentID, data + curOffset, sizeof(segmentID));
-  curOffset += sizeof(segmentID) + 1;
+  curOffset += sizeof(segmentID);
 
   uint64_t attSize;
   memcpy(&attSize, data + curOffset, sizeof(attSize));
-  curOffset += sizeof(attSize) + 1;
+  curOffset += sizeof(attSize);
 
   uint64_t keySize;
   memcpy(&keySize, data + curOffset, sizeof(keySize));
-  curOffset += sizeof(keySize) + 1;
+  curOffset += sizeof(keySize);
 
   attributes.reserve(attSize);
   for (uint64_t i = 0; i < attSize; i++) {
@@ -59,18 +58,18 @@ RelationSchema::RelationSchema(Record& record) {
     curOffset += a.name.size() + 1;
 
     char type = data[curOffset];
-    curOffset += sizeof(char) + 1;
+    curOffset += sizeof(char);
 
     a.type = loadType(type);
     if (a.type == Types::Tag::Integer) {
       a.len = ~0;
     } else {
       memcpy(&a.len, data + curOffset, sizeof(a.len));
-      curOffset += sizeof(a.len) + 1;
+      curOffset += sizeof(a.len);
     }
 
     memcpy(&a.notNull, data + curOffset, sizeof(bool));
-    curOffset += sizeof(bool) + 1;
+    curOffset += sizeof(bool);
 
     attributes.push_back(a);
   }
@@ -81,15 +80,13 @@ RelationSchema::RelationSchema(Record& record) {
   for (uint64_t i = 0; i < keySize; i++) {
     unsigned k;
     memcpy(&k, data + curOffset, sizeof(k));
-    curOffset += sizeof(k) + 1;
+    curOffset += sizeof(k);
     primaryKey.push_back(k);
   }
 
-  #ifdef DEBUG
   if(curOffset != record.getLen()) {
     throw std::runtime_error("actually consumed number of bytes does not match the record's size");
   }
-  #endif
 }
 
 Record RelationSchema::serializeToRecord() const {
@@ -102,7 +99,9 @@ Record RelationSchema::serializeToRecord() const {
   for (const AttributeDescriptor& a : attributes) {
     memSize += a.name.size()+1;
     memSize += sizeof(char);
-    memSize += sizeof(unsigned);
+    if(a.type == Types::Tag::Char) {
+      memSize += sizeof(unsigned);
+    }
     memSize += sizeof(bool);
   }
 
@@ -116,18 +115,17 @@ Record RelationSchema::serializeToRecord() const {
   curPos += name.size() + 1;
 
   memcpy(curPos, &size, sizeof(size));
-  curPos += sizeof(size) + 1;
+  curPos += sizeof(size);
 
   memcpy(curPos, &segmentID, sizeof(segmentID));
-  curPos += sizeof(segmentID) + 1;
+  curPos += sizeof(segmentID);
 
   uint64_t attSize = attributes.size();
   memcpy(curPos, &attSize, sizeof(attSize));
-  curPos += sizeof(attSize) + 1;
-
+  curPos += sizeof(attSize);
 
   memcpy(curPos, &keySize, sizeof(keySize));
-  curPos += sizeof(keySize) + 1;
+  curPos += sizeof(keySize);
 
   for (const AttributeDescriptor& a : attributes) {
     strcpy(reinterpret_cast<char*>(curPos), a.name.c_str());
@@ -135,26 +133,24 @@ Record RelationSchema::serializeToRecord() const {
 
     char type = serializeType(a.type);
     memcpy(curPos, &type, sizeof(type));
-    curPos += sizeof(type) + 1;
+    curPos += sizeof(type);
 
     if (a.type != Types::Tag::Integer) {
       memcpy(curPos, &a.len, sizeof(a.len));
-      curPos += sizeof(a.len) + 1;
+      curPos += sizeof(a.len);
     }
     memcpy(curPos, &a.notNull, sizeof(bool));
-    curPos += sizeof(bool) + 1;
+    curPos += sizeof(bool);
   }
 
   for (unsigned key : primaryKey) {
     memcpy(curPos, &key, sizeof(key));
-    curPos += sizeof(key) + 1;
+    curPos += sizeof(key);
   }
 
-  #ifdef DEBUG
   if(static_cast<unsigned>(curPos - data) != memSize) {
     throw std::runtime_error("actual size does not match calculated size");
   }
-  #endif
 
   return Record(curPos - data, data);
 }
