@@ -19,7 +19,7 @@ namespace dbImpl {
     TypeTag type;
     unsigned len;
     bool notNull; 
-    AttributeDescriptor() : len(~0), notNull(true) {}
+    AttributeDescriptor() : len(~0), notNull(false) {}
     AttributeDescriptor(std::string name, TypeTag type, unsigned len = ~0, bool notNull = false)
       : name(name), type(type), len(len), notNull(notNull) {}
   };
