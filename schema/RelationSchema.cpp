@@ -34,7 +34,7 @@ RelationSchema::RelationSchema(Record& record) {
     throw std::runtime_error("loadFromRecord called with an empty record");
   }
 
-  uint64_t curOffset = 0;
+  unsigned curOffset = 0;
   name = std::string(reinterpret_cast<const char*>(data + curOffset));
   curOffset += name.size() + 1;
 
@@ -84,10 +84,16 @@ RelationSchema::RelationSchema(Record& record) {
     curOffset += sizeof(k) + 1;
     primaryKey.push_back(k);
   }
+
+  #ifdef DEBUG
+  if(curOffset != record.getLen()) {
+    throw std::runtime_error("actually consumed number of bytes does not match the record's size");
+  }
+  #endif
 }
 
 Record RelationSchema::serializeToRecord() const {
-  uint64_t memSize = 0;
+  unsigned memSize = 0;
   memSize += name.size()+1;
   memSize += sizeof(size);
   memSize += sizeof(segmentID);
@@ -96,7 +102,7 @@ Record RelationSchema::serializeToRecord() const {
   for (const AttributeDescriptor& a : attributes) {
     memSize += a.name.size()+1;
     memSize += sizeof(char);
-    memSize += sizeof(a.len);
+    memSize += sizeof(unsigned);
     memSize += sizeof(bool);
   }
 
@@ -143,6 +149,12 @@ Record RelationSchema::serializeToRecord() const {
     memcpy(curPos, &key, sizeof(key));
     curPos += sizeof(key) + 1;
   }
+
+  #ifdef DEBUG
+  if(static_cast<unsigned>(curPos - data) != memSize) {
+    throw std::runtime_error("actual size does not match calculated size");
+  }
+  #endif
 
   return Record(curPos - data, data);
 }
