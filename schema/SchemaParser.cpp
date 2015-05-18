@@ -43,6 +43,9 @@ namespace dbImpl {
         if (token.find("\n")!=std::string::npos)
            ++line;
      }
+     if(state != State::Init && state != State::Semicolon) {
+        throw ParserError(line, "Schema definition truncated");
+     }
      return std::move(s);
   }
 
