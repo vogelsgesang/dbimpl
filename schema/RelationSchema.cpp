@@ -8,35 +8,34 @@
 
 namespace dbImpl {
 
-static char serializeType(const Types::Tag type) {
+char serializeType(const Types::Tag type) {
   switch (type) {
   case Types::Tag::Integer:
     return 'i';
-  case Types::Tag::Char: {
+  case Types::Tag::Char: 
     return 'c';
   }
-  }
-  std::cerr << "could not serialize Type" << std::endl;
-  return ~0;
+  throw std::runtime_error("could not serialize attribute type");
 }
 
-static Types::Tag loadType(char type) {
+Types::Tag loadType(char type) {
   if (type == 'i') {
     return Types::Tag::Integer;
   } else if (type == 'c') {
     return Types::Tag::Char;
   } else {
-    throw std::runtime_error("invalid type");
+    throw std::runtime_error("could not deserialize attribute type");
   }
 }
 
 RelationSchema::RelationSchema(Record& record) {
-  const char* data = record.getData();
+  const uint8_t* data = record.getData();
   if (data == NULL || record.getLen() == 0) {
     throw std::runtime_error("loadFromRecord called with an empty record");
   }
+
   uint64_t curOffset = 0;
-  name = std::string(data + curOffset);
+  name = std::string(reinterpret_cast<const char*>(data + curOffset));
   curOffset += name.size() + 1;
 
   memcpy(&size, data + curOffset, sizeof(size));
@@ -56,7 +55,7 @@ RelationSchema::RelationSchema(Record& record) {
   attributes.reserve(attSize);
   for (uint64_t i = 0; i < attSize; i++) {
     AttributeDescriptor a;
-    a.name = std::string(data + curOffset);
+    a.name = std::string(reinterpret_cast<const char*>(data + curOffset));
     curOffset += a.name.size() + 1;
 
     char type = data[curOffset];
@@ -104,10 +103,10 @@ Record RelationSchema::serializeToRecord() const {
   uint64_t keySize = primaryKey.size();
   memSize += keySize * sizeof(unsigned);
 
-  char* data = new char[memSize];
-  char* curPos = data;
+  uint8_t* data = new uint8_t[memSize];
+  uint8_t* curPos = data;
 
-  strcpy(curPos, name.c_str());
+  strcpy(reinterpret_cast<char*>(curPos), name.c_str());
   curPos += name.size() + 1;
 
   memcpy(curPos, &size, sizeof(size));
@@ -125,7 +124,7 @@ Record RelationSchema::serializeToRecord() const {
   curPos += sizeof(keySize) + 1;
 
   for (const AttributeDescriptor& a : attributes) {
-    strcpy(curPos, a.name.c_str());
+    strcpy(reinterpret_cast<char*>(curPos), a.name.c_str());
     curPos += a.name.size() + 1;
 
     char type = serializeType(a.type);
@@ -146,7 +145,6 @@ Record RelationSchema::serializeToRecord() const {
   }
 
   return Record(curPos - data, data);
-
 }
 
 } //namespace dbimpl

@@ -9,7 +9,7 @@ namespace dbImpl {
 
   BufferFrame::BufferFrame(uint64_t pageId, uint64_t pageSize) : pageId(pageId) {
     pthread_rwlock_init(&latch, nullptr);
-    data = malloc(pageSize);
+    data = reinterpret_cast<uint8_t*> (malloc(pageSize));
     dirty = false;
   }
 
@@ -18,7 +18,7 @@ namespace dbImpl {
     pthread_rwlock_destroy(&latch);
   }
 
-  void* BufferFrame::getData() {
+  uint8_t* BufferFrame::getData() {
     return data;
   }
 
@@ -56,6 +56,5 @@ namespace dbImpl {
       throw std::system_error(std::error_code(ret, std::system_category()), "unable to unlock frame");
     }
   }
-
 
 }

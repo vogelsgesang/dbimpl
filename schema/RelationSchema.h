@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <cstdint> //uint64_t
-#include <slottedPages/Record.hpp>
+#include "slottedPages/record.h"
 
 namespace dbImpl {
   class Record;

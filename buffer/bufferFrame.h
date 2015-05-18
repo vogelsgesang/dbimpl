@@ -18,19 +18,19 @@ namespace dbImpl {
       //deleted operator= => non copyable
       const BufferFrame& operator=(const BufferFrame&) = delete;
 
-      uint64_t pageId;
+      const uint64_t pageId;
       
       // constructor
       BufferFrame(uint64_t pageId, uint64_t bufferSize);
       // destructor
       virtual ~BufferFrame();
       // returns data from page
-      void* getData();
+      uint8_t* getData();
 
     private:
       bool dirty;
-      // actual data
-      void* data;
+      // pointer to the actual data
+      uint8_t* data;
       // frame's lock
       pthread_rwlock_t latch;
       // locks this frame with a write or read lock

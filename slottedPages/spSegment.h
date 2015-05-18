@@ -3,11 +3,12 @@
 
 #include <cstdint>
 
-#include "slottedPages/Record.hpp"
+#include "slottedPages/record.h"
 
 namespace dbImpl {
 
   class BufferManager;
+  class BufferFrame;
 
   /**
    * Accesses a segment using the slotted pages mechanism.
@@ -56,9 +57,25 @@ namespace dbImpl {
 
     protected:
       /**
-       * compactifies the page containing the given TID (without taking redirections into account)
+       * compactifies the page
        */
-      void compacitifyPage(uint64_t tid);
+      void compactify(BufferFrame& frame);
+
+      /**
+       * returns the first page which is able to store the required amount of data.
+       * The returned BufferFrame is already locked exclusively.
+       * If no such page exists currently, a new page will be allocated.
+       */
+      BufferFrame& getFrameForSize(uint64_t size);
+
+      /**
+       * Helper function used by insert and update.
+       * Saves data into a the specified slot into the frame.
+       * If neccessary the page is compactified first.
+       * The Record MUST fit onto the page. There are no additional checks for its size!
+       * The BufferFrame must be locked exclusively. This function does not unlock the page.
+       */
+      void emplaceContents(BufferFrame& frame, uint8_t slotNr, const Record& r);
 
       BufferManager& bm;
       uint32_t segmentId;
