@@ -5,7 +5,7 @@
 #include <vector>
 #include <istream>
 
-#include "schema/RelationSchema.h"
+#include "schema/relationSchema.h"
 
 namespace dbImpl {
 

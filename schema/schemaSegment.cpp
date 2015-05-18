@@ -1,8 +1,8 @@
-#include "schema/SchemaSegment.h"
+#include "schema/schemaSegment.h"
 
 #include <stdexcept>
 
-#include "schema/RelationSchema.h"
+#include "schema/relationSchema.h"
 #include "buffer/bufferFrame.h"
 #include "buffer/bufferManager.h"
 #include "utils/finally.h"

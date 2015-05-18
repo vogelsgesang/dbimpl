@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
-#include "schema/RelationSchema.h"
-#include "schema/SchemaParser.h"
+#include "schema/relationSchema.h"
+#include "schema/schemaParser.h"
 
 TEST(SchemaParserTest, parsesAnEmptySchemaDefinitions) {
   dbImpl::SchemaParser parser;

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
-#include "schema/RelationSchema.h"
-#include "schema/SchemaParser.h"
+#include "schema/relationSchema.h"
+#include "schema/schemaParser.h"
 
 using namespace dbImpl;
 

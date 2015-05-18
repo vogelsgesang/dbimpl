@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "buffer/bufferManager.h"
-#include "schema/RelationSchema.h"
-#include "schema/SchemaSegment.h"
+#include "schema/relationSchema.h"
+#include "schema/schemaSegment.h"
 
 dbImpl::RelationSchema getTestSchema() {
   uint64_t segmentID = 3;

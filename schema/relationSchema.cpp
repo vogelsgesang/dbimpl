@@ -1,4 +1,4 @@
-#include "RelationSchema.h"
+#include "schema/relationSchema.h"
 #include <string>
 #include <sstream>
 #include <cstring>

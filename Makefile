@@ -78,19 +78,19 @@ bin/buffertest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BUFFER_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	
-PARSE_SCHEMA_OBJS=schema/RelationSchema.o schema/SchemaParser.o cli/parseSchema.o
+PARSE_SCHEMA_OBJS=schema/relationSchema.o schema/schemaParser.o cli/parseSchema.o
 bin/parseSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(PARSE_SCHEMA_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-LOAD_SCHEMA_OBJS=utils/checkedIO.o buffer/bufferFrame.o buffer/bufferManager.o schema/SchemaSegment.o \
-								 schema/RelationSchema.o schema/SchemaParser.o cli/loadSchema.o
+LOAD_SCHEMA_OBJS=utils/checkedIO.o buffer/bufferFrame.o buffer/bufferManager.o schema/schemaSegment.o \
+								 schema/relationSchema.o schema/schemaParser.o cli/loadSchema.o
 bin/loadSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(LOAD_SCHEMA_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-SHOW_SCHEMA_OBJS=utils/checkedIO.o buffer/bufferFrame.o buffer/bufferManager.o schema/SchemaSegment.o \
-								 schema/RelationSchema.o schema/SchemaParser.o cli/showSchema.o
+SHOW_SCHEMA_OBJS=utils/checkedIO.o buffer/bufferFrame.o buffer/bufferManager.o schema/schemaSegment.o \
+								 schema/relationSchema.o schema/schemaParser.o cli/showSchema.o
 bin/showSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SHOW_SCHEMA_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
@@ -98,8 +98,8 @@ bin/showSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SHOW_SCHEMA_OBJS))
 RUNTESTS_OBJS=gtest_main.a $(patsubst %.cpp, %.o, $(shell find tests/ -iname *Test.cpp -type f)) \
               sorting/externalSort.o sorting/isSorted.o utils/checkedIO.o \
               logic/sqlBool.o buffer/bufferManager.o buffer/bufferFrame.o \
-              slottedPages/spSegment.o schema/RelationSchema.o schema/SchemaParser.o \
-							schema/SchemaSegment.o
+              slottedPages/spSegment.o schema/relationSchema.o schema/schemaParser.o \
+							schema/schemaSegment.o
 bin/runTests$(BIN_SUFFIX): CPPFLAGS+= -isystem $(GTEST_DIR)/include
 #the dependency on the _directory_ containing the test specifications is neccessary in
 #order to handle deleted files correctly

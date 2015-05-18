@@ -2,9 +2,9 @@
 #include <fstream>
 #include <memory>
 #include "buffer/bufferManager.h"
-#include "schema/RelationSchema.h"
-#include "schema/SchemaParser.h"
-#include "schema/SchemaSegment.h"
+#include "schema/relationSchema.h"
+#include "schema/schemaParser.h"
+#include "schema/schemaSegment.h"
 
 using namespace dbImpl;
 
