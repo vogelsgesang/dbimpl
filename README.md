@@ -35,6 +35,7 @@ There is some code which I wrote but which is not used currently. You can find i
 ##External sorting
 
 For the first assignment an external sort algorithm had to be implemented. We chose to implement a merge sort algorithm.
+The binary is called `bin/externalSort`.
 
 ###Useful shell commands
 
@@ -56,3 +57,18 @@ od -A n -t u8 -w8 -v <fileName> | sort -n
 
 A thread-safe buffer manager can be found in the `buffer` directory.
 It uses the 2Q strategy for page replacement.
+
+##Schema
+
+Schema definitions can be stored in the database.
+There are three different tools to deal with the schemas:
+
+* `bin/parseSchema <inputFile>`: parses the schema from `<inputFile>` and prints it to the console.
+* `bin/loadSchema <inputFile>`: parses the schema from `<inputFile>` and stores it within the database. All previously loaded schema information will be lost.
+* `bin/showSchema`: shows the schema currently stored in the database.
+
+Only a subset of the valid SQL schema definitions are accepted by `parseSchema` and `loadSchema`. One accepted schema definition can be found in `exampleSchema.sql`.
+
+##Slotted pages
+
+An implementation of slotted pages can be found in `slottedPages`.
