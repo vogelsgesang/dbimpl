@@ -32,7 +32,7 @@ endif
 OBJ_DIR=build/$(BUILD_TYPE)
 
 .PHONY: all
-all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema)
+all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema bin/loadSchema bin/showSchema)
 
 .PHONY: test
 test: all
@@ -80,6 +80,18 @@ bin/buffertest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BUFFER_OBJS))
 	
 PARSE_SCHEMA_OBJS=schema/RelationSchema.o schema/SchemaParser.o cli/parseSchema.o
 bin/parseSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(PARSE_SCHEMA_OBJS))
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+LOAD_SCHEMA_OBJS=utils/checkedIO.o buffer/bufferFrame.o buffer/bufferManager.o schema/SchemaSegment.o \
+								 schema/RelationSchema.o schema/SchemaParser.o cli/loadSchema.o
+bin/loadSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(LOAD_SCHEMA_OBJS))
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+SHOW_SCHEMA_OBJS=utils/checkedIO.o buffer/bufferFrame.o buffer/bufferManager.o schema/SchemaSegment.o \
+								 schema/RelationSchema.o schema/SchemaParser.o cli/showSchema.o
+bin/showSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SHOW_SCHEMA_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
