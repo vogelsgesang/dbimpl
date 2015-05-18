@@ -14,7 +14,7 @@ TEST(SlottedPagesTest, storesRecords) {
 
   dbImpl::Record readRecord = spSegment.lookup(tid);
   EXPECT_EQ(testStr.length()+1, readRecord.getLen());
-  EXPECT_STREQ(testStr.c_str(), readRecord.getData());
+  EXPECT_STREQ(testStr.c_str(), reinterpret_cast<const char*>(readRecord.getData()));
 }
 
 TEST(SlottedPagesTest, reusesTids) {

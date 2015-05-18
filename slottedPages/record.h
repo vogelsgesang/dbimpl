@@ -11,7 +11,7 @@ namespace dbImpl {
   class Record {
     private:
       unsigned len;
-      char* data;
+      uint8_t* data;
 
     public:
       // Assignment Operator: deleted
@@ -24,9 +24,11 @@ namespace dbImpl {
         t.len = 0;
       }
       // Constructor
-      Record(unsigned len, const uint8_t* const ptr) : len(len) {
-        data = new char[len];
-        memcpy(data, ptr, len);
+      Record(unsigned len, const uint8_t* const ptr = nullptr) : len(len) {
+        data = new uint8_t[len];
+        if(ptr != nullptr) {
+          memcpy(data, ptr, len);
+        }
       }
       // Destructor
       ~Record() {
@@ -35,7 +37,7 @@ namespace dbImpl {
         }
       }
       // Get pointer to data
-      const char* getData() const {
+      const uint8_t* getData() const {
         return data;
       }
       // Get data size in bytes
