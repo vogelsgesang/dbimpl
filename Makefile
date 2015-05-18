@@ -98,7 +98,8 @@ bin/showSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SHOW_SCHEMA_OBJS))
 RUNTESTS_OBJS=gtest_main.a $(patsubst %.cpp, %.o, $(shell find tests/ -iname *Test.cpp -type f)) \
               sorting/externalSort.o sorting/isSorted.o utils/checkedIO.o \
               logic/sqlBool.o buffer/bufferManager.o buffer/bufferFrame.o \
-              slottedPages/spSegment.o schema/RelationSchema.o schema/SchemaParser.o
+              slottedPages/spSegment.o schema/RelationSchema.o schema/SchemaParser.o \
+							schema/SchemaSegment.o
 bin/runTests$(BIN_SUFFIX): CPPFLAGS+= -isystem $(GTEST_DIR)/include
 #the dependency on the _directory_ containing the test specifications is neccessary in
 #order to handle deleted files correctly
