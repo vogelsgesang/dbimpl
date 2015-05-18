@@ -110,7 +110,9 @@ namespace dbImpl {
     }
     //clear the slot descriptor on this page by setting offset and len to 0
     slots[slotNr].inplace = SlotDescriptor::InplaceDescriptor(0,0);
-    header->firstFreeSlot = slotNr;
+    if(header->firstFreeSlot > slotNr) {
+      header->firstFreeSlot = slotNr;
+    }
     //deallocate the space
     if(!slot.isRedirection()) {
       header->freeSpace += slot.inplace.len;
