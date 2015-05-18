@@ -167,7 +167,7 @@ std::ostream& operator<< (std::ostream& out, const TypeTag& type) {
 }
 
 std::ostream& operator<< (std::ostream& out, const AttributeDescriptor& attr) {
-  out << attr.name << attr.type;
+  out << attr.name << " " << attr.type;
   if(attr.type == TypeTag::Char) {
     out << "(" << attr.len << ")";
   }
@@ -179,11 +179,11 @@ std::ostream& operator<< (std::ostream& out, const AttributeDescriptor& attr) {
 
 std::ostream& operator<< (std::ostream& out, const RelationSchema& schema) {
   out << "TABLE " << schema.name << ":\n";
-  for(auto attr : schema.attributes) {
+  for(const auto& attr : schema.attributes) {
     out << "  " << attr << "\n";
   }
   out << "  primary key:";
-  for(auto keyId : schema.primaryKey) {
+  for(const auto& keyId : schema.primaryKey) {
     out << " " << keyId;
   }
   out << "\n";
