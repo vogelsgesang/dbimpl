@@ -7,21 +7,21 @@
 
 namespace dbImpl {
 
-char serializeType(const Types::Tag type) {
+char serializeType(const TypeTag type) {
   switch (type) {
-  case Types::Tag::Integer:
+  case TypeTag::Integer:
     return 'i';
-  case Types::Tag::Char: 
+  case TypeTag::Char:
     return 'c';
   }
   throw std::runtime_error("could not serialize attribute type");
 }
 
-Types::Tag loadType(char type) {
+TypeTag loadType(char type) {
   if (type == 'i') {
-    return Types::Tag::Integer;
+    return TypeTag::Integer;
   } else if (type == 'c') {
-    return Types::Tag::Char;
+    return TypeTag::Char;
   } else {
     throw std::runtime_error("could not deserialize attribute type");
   }
@@ -61,7 +61,7 @@ RelationSchema::RelationSchema(Record& record) {
     curOffset += sizeof(char);
 
     a.type = loadType(type);
-    if (a.type == Types::Tag::Integer) {
+    if (a.type == TypeTag::Integer) {
       a.len = ~0;
     } else {
       memcpy(&a.len, data + curOffset, sizeof(a.len));
@@ -99,7 +99,7 @@ Record RelationSchema::serializeToRecord() const {
   for (const AttributeDescriptor& a : attributes) {
     memSize += a.name.size()+1;
     memSize += sizeof(char);
-    if(a.type == Types::Tag::Char) {
+    if(a.type == TypeTag::Char) {
       memSize += sizeof(unsigned);
     }
     memSize += sizeof(bool);
@@ -135,7 +135,7 @@ Record RelationSchema::serializeToRecord() const {
     memcpy(curPos, &type, sizeof(type));
     curPos += sizeof(type);
 
-    if (a.type != Types::Tag::Integer) {
+    if (a.type != TypeTag::Integer) {
       memcpy(curPos, &a.len, sizeof(a.len));
       curPos += sizeof(a.len);
     }

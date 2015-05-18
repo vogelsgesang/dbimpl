@@ -12,18 +12,16 @@ namespace dbImpl {
   /**
    * Types
    */
-  namespace Types {
-     enum class Tag : char {Integer, Char};
-  }
+  enum class TypeTag : char {Integer, Char};
 
   struct AttributeDescriptor {
     std::string name;
-    Types::Tag type;
+    TypeTag type;
     unsigned len;
     bool notNull;
 
     AttributeDescriptor() : len(~0), notNull(true) {}
-    AttributeDescriptor(std::string name, Types::Tag type, unsigned len = ~0, bool notNull = false)
+    AttributeDescriptor(std::string name, TypeTag type, unsigned len = ~0, bool notNull = false)
       : name(name), type(type), len(len), notNull(notNull) {}
   };
 

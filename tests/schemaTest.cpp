@@ -6,9 +6,9 @@ TEST(RelationSchemaTest, serializesRelation) {
   uint64_t segmentID = 3;
   uint64_t size = 1;
   dbImpl::RelationSchema studentenSchema("studenten", {
-      dbImpl::AttributeDescriptor("id", dbImpl::Types::Tag::Integer, ~0, true),
-      dbImpl::AttributeDescriptor("name", dbImpl::Types::Tag::Char, 30),
-      dbImpl::AttributeDescriptor("semester", dbImpl::Types::Tag::Integer)}, {
+      dbImpl::AttributeDescriptor("id", dbImpl::TypeTag::Integer, ~0, true),
+      dbImpl::AttributeDescriptor("name", dbImpl::TypeTag::Char, 30),
+      dbImpl::AttributeDescriptor("semester", dbImpl::TypeTag::Integer)}, {
       0, 4, 10, 23 }, segmentID, size);
 
   dbImpl::Record serializedSchema = studentenSchema.serializeToRecord();
