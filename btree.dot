@@ -1,0 +1,18 @@
+digraph myBTree {
+  node [shape=record];
+  node0 [shape=record, label=
+  "<count> 2 | <ptr0> * | <key0> NL | <ptr1> * | <key1> US | <ptr2> * | <key2> | <ptr3> * | <key3> | <ptr4> *"];
+  leaf1 [shape=record, label=
+  "<count> 3 | { <key0> AU | <tid0> 123:3 } | { <key1> DE | <tid1> 456:7 } | { <key2> ES | <tid2> 789:12 } | { <key3> | <tid3> } | <next> *"];
+  leaf2 [shape=record, label=
+  "<count> 3 | { <key0> NL | <tid0> 4711:2 } | { <key1> NZ | <tid1> 4:11 } | { <key2> NO | <tid2> 101:8 } | { <key3> | <tid3> } | <next> *"];
+  leaf3 [shape=record, label=
+  "<count> 2 | { <key0> US | <tid0> 47:2 } | { <key1> VN | <tid1> 46:11 } | { <key2> ZY | <tid2> 10101:4 } | { <key3> | <tid3> } | <next>"];
+
+  node0:ptr0 -> leaf1;
+  node0:ptr1 -> leaf2;
+  node0:ptr2 -> leaf3;
+
+  leaf1:next -> leaf2:count;
+  leaf2:next -> leaf3:count;
+}
