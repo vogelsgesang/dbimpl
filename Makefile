@@ -95,6 +95,11 @@ bin/showSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SHOW_SCHEMA_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
+BTREE_OBJS=bTree/bTree.o 
+bin/bTreeTest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BTREE_OBJS))
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
 RUNTESTS_OBJS=gtest_main.a $(patsubst %.cpp, %.o, $(shell find tests/ -iname *Test.cpp -type f)) \
               sorting/externalSort.o sorting/isSorted.o utils/checkedIO.o \
               logic/sqlBool.o buffer/bufferManager.o buffer/bufferFrame.o \
