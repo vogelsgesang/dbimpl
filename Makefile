@@ -95,7 +95,7 @@ bin/showSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SHOW_SCHEMA_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-BTREE_OBJS=bTree/bTree.o 
+BTREE_OBJS=
 bin/bTreeTest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BTREE_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@

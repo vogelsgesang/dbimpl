@@ -11,30 +11,34 @@ template<typename K,typename Comp>
 class BTree {
 
 private:
+  inline uint64_t calculateMaxChildren(bool isLeaf);
   struct Node{
     uint64_t lsn;
     uint64_t upper; //upper page of right-most child
-    uint64_t count(0); //number of entries
+    uint64_t count = 0; //number of entries
     std::pair<K,uint64_t> keyChildPIDPairs[calculateMaxChildren(false)];
+    inline bool isFull();
+    inline bool isLeaf();
+    inline uint64_t findKeyPos(const K key);
   };
 
   struct Leaf{
      uint64_t lsn;
-     uint64_t isLeaf(~0); //mark as Leaf
+     uint64_t isLeaf = ~0; //mark as Leaf
      Leaf* next; //next leaf node
-     uint64_t count(0); //number of entries
+     uint64_t count = 0; //number of entries
      std::pair<K,uint64_t> keyTIDPairs[calculateMaxChildren(true)];
+     inline uint64_t findKeyPos(const K key);
   };
 
-  inline uint64_t calculateMaxChildren(bool isLeaf);
-  inline bool Node::isFull();
-  inline bool Node::isLeaf();
-  inline uint64_t Node::findKeyPos(const K key);
-  inline uint64_t Leaf::findKeyPos(const K key);
 
 
-  Node root*;
-  Comparator smaller;
+
+
+
+
+
+  Comp smaller;
 
 public:
 
@@ -46,7 +50,7 @@ public:
 
 
 }
-#include "bTree/bTreeImpl.h"
+#include "bTree.inl.cpp"
 
 
 #endif //_B_TREE_H_
