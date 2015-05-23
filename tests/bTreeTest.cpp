@@ -15,8 +15,8 @@ TEST(BTreeTest, insertOneNode) {
   BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> test(bm);
   test.insert(10, 50);
-
-  EXPECT_EQ(50, test.lookup(10).value());
+  ASSERT_TRUE(test.lookup(10));
+  EXPECT_EQ(50, test.lookup(10).get());
 
 }
 

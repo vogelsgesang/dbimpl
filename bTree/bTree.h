@@ -2,7 +2,10 @@
 #define _B_TREE_H_
 
 #include <cstdint>
-#include "utils/optional.h"
+//#include "utils/optional.h"
+#include <boost/optional.hpp>
+
+using boost::optional;
 
 namespace dbImpl {
 
@@ -41,7 +44,7 @@ public:
   BTree<K, Comp>(BufferManager& bm);
   bool insert(K key, uint64_t tid);
   bool erase(K key);
-  std::experimental::optional<uint64_t> lookup(K key); //Returns a TID or indicates that the key was not found.
+  optional<uint64_t> lookup(K key); //Returns a TID or indicates that the key was not found.
   std::vector<uint64_t>::iterator lookupRange(K key1, K key2);
 
   static Comp smaller;
