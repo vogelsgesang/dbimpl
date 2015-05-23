@@ -9,8 +9,9 @@ namespace dbImpl {
 template<typename K, typename Comp>
 class BTree {
 
+
 private:
-  inline uint64_t calculateMaxChildren(bool isLeaf);
+
   struct Node {
     uint64_t lsn;
     uint64_t upper; //upper page of right-most child
@@ -32,15 +33,18 @@ private:
     void insertIntoLeaf(K key, uint64_t tid);
   };
 
-  Comp smaller;
-  Node* root;
+
+  uint64_t rootPID;
+  BufferManager& bufferManager;
 
 public:
-
+  BTree<K, Comp>(BufferManager& bm);
   bool insert(K key, uint64_t tid);
   bool erase(K key);
   std::experimental::optional<uint64_t> lookup(K key); //Returns a TID or indicates that the key was not found.
   std::vector<uint64_t>::iterator lookupRange(K key1, K key2);
+
+  static Comp smaller;
 };
 
 }

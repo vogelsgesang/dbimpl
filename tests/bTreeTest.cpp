@@ -12,8 +12,8 @@ struct UInt64Cmp {
 };
 
 TEST(BTreeTest, insertOneNode) {
-
-  BTree<uint64_t, UInt64Cmp> test;
+  BufferManager bm(50);
+  BTree<uint64_t, UInt64Cmp> test(bm);
   test.insert(10, 50);
 
   EXPECT_EQ(50, test.lookup(10).value());
