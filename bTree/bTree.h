@@ -22,7 +22,10 @@ private:
     std::pair<K, uint64_t> keyChildPIDPairs[1];
     inline bool isFull();
     inline bool isLeaf();
-    inline uint64_t findKeyPos(const K key);
+    inline K getMaxKey();
+    uint64_t findKeyPos(const K key);
+    BufferFrame* split(BufferFrame* newFrame, BufferFrame* parent);
+    void insertKey(K key, uint64_t childPID);
   };
 
   struct Leaf {
@@ -33,12 +36,17 @@ private:
     std::pair<K, uint64_t> keyTIDPairs[1];
     inline uint64_t findKeyPos(const K key);
     inline bool isFull();
-    void insertIntoLeaf(K key, uint64_t tid);
-    bool deleteKeyInLeaf(K key);
+    inline K getMaxKey();
+    void insertKey(K key, uint64_t tid);
+    bool deleteKey(K key);
+    BufferFrame* split(BufferFrame* newFrame, BufferFrame* parent);
   };
+
+  inline BufferFrame* createNewRoot();
 
 
   uint64_t rootPID;
+  uint64_t nextFreePage = 0;
   BufferManager& bufferManager;
 
 public:

@@ -38,14 +38,22 @@ TEST(BTreeTest, insertandDeleteSortedNodes) {
   for (int i = 0; i < 20; i++) {
     ASSERT_FALSE(test.lookup(i));
   }
-
 }
-//implement splitting to make this test work
-/*
-TEST(BTreeTest, insertManyNodes) {
+
+TEST(BTreeTest, splitLeafs) {
   BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> test(bm);
   for (int i = 0; i < 2000; i++) {
+     test.insert(i, 2 * i);
+   }
+}
+//TODO check--> correct fix/unfixes
+/*
+
+TEST(BTreeTest, splitInnerNode) {
+  BufferManager bm(50);
+  BTree<uint64_t, UInt64Cmp> test(bm);
+  for (int i = 0; i < 2000000; i++) {
      test.insert(i, 2 * i);
    }
 }
