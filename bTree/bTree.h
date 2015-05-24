@@ -34,6 +34,7 @@ private:
     inline uint64_t findKeyPos(const K key);
     inline bool isFull();
     void insertIntoLeaf(K key, uint64_t tid);
+    bool deleteKeyInLeaf(K key);
   };
 
 

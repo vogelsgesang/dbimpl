@@ -33,14 +33,26 @@ inline uint64_t BTree<K, Comp>::Node::findKeyPos(const K key) {
   uint64_t mid;
   while (right != left) {
     mid = left + ((right - left) / 2);
-    if (BTree::smaller(keyChildPIDPairs[mid].first,key)) {
-      left = mid+1;
+    if (BTree::smaller(keyChildPIDPairs[mid].first, key)) {
+      left = mid + 1;
     } else {
       right = mid;
     }
   }
   return left;
 
+}
+template<typename K, typename Comp>
+bool BTree<K, Comp>::Leaf::deleteKeyInLeaf(K key) {
+  uint64_t pos = findKeyPos(key);
+  bool deleted = false;
+   if (pos < count && !smaller(key, keyTIDPairs[pos].first)
+       && !smaller(keyTIDPairs[pos].first, key)) {
+     deleted = true;
+     count--;
+     memmove(&keyTIDPairs[pos], &keyTIDPairs[pos+1], (count-pos)*sizeof(std::pair<K,uint64_t>));
+   }
+   return deleted;
 }
 
 template<typename K, typename Comp>
@@ -51,8 +63,8 @@ inline uint64_t BTree<K, Comp>::Leaf::findKeyPos(const K key) {
 
   while (right != left) {
     mid = left + ((right - left) / 2);
-    if (BTree::smaller(keyTIDPairs[mid].first,key)) {
-      left = mid+1;
+    if (BTree::smaller(keyTIDPairs[mid].first, key)) {
+      left = mid + 1;
     } else {
       right = mid;
     }
@@ -63,8 +75,8 @@ inline uint64_t BTree<K, Comp>::Leaf::findKeyPos(const K key) {
 template<typename K, typename Comp>
 void BTree<K, Comp>::Leaf::insertIntoLeaf(K key, uint64_t tid) {
   uint64_t pos = findKeyPos(key);
-  if (keyTIDPairs[pos].first == key) {
-    std::cout << "Key " << key << "is already in tree" << std::endl;
+  if (keyTIDPairs[pos].first == key && count != pos) {
+    std::cout << "Key " << key << " is already in tree. TID:" << keyTIDPairs[pos].second << std::endl;
     return;
   }
   memmove(&keyTIDPairs[pos + 1], &keyTIDPairs[pos],
@@ -119,7 +131,33 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
 
 template<typename K, typename Comp>
 bool BTree<K, Comp>::erase(K key) {
-  throw "To be implemented";
+  //latch the root
+  BufferFrame* curFrame = &bufferManager.fixPage(rootPID, true);
+  Node* curNode = reinterpret_cast<Node*>(curFrame->getData());
+  BufferFrame* parFrame = NULL;
+
+  while (!curNode->isLeaf()) {
+    if (parFrame != NULL) {
+      bufferManager.unfixPage(*parFrame, false);
+    }
+    parFrame = curFrame;
+    uint64_t pos = curNode->findKeyPos(key);
+    uint64_t nextPID =
+        (pos == curNode->count) ?
+            curNode->upper : curNode->keyChildPIDPairs[pos].second;
+    //latch the next level
+    curFrame = &bufferManager.fixPage(nextPID, true);
+    curNode = reinterpret_cast<Node*>(curFrame->getData());
+  }
+
+  Leaf* leaf = reinterpret_cast<Leaf*>(curNode);
+  bool deleted = leaf->deleteKeyInLeaf(key);
+  if (parFrame != NULL) {
+    bufferManager.unfixPage(*parFrame, false);
+  }
+  bufferManager.unfixPage(*curFrame, true);
+  return deleted;
+
 }
 
 template<typename K, typename Comp>
@@ -147,15 +185,16 @@ optional<uint64_t> BTree<K, Comp>::lookup(K key) {
   uint64_t tid;
 
   bool found = false;
-  if(pos < leaf->count && !smaller(key,leaf->keyTIDPairs[pos].first) && !smaller(leaf->keyTIDPairs[pos].first,key)){
+  if (pos < leaf->count && !smaller(key, leaf->keyTIDPairs[pos].first)
+      && !smaller(leaf->keyTIDPairs[pos].first, key)) {
     found = true;
     tid = leaf->keyTIDPairs[pos].second;
   }
   if (parFrame != NULL) {
-        bufferManager.unfixPage(*parFrame, false);
+    bufferManager.unfixPage(*parFrame, false);
   }
   bufferManager.unfixPage(*curFrame, false);
-  return optional<uint64_t>{found, tid};
+  return optional<uint64_t> { found, tid };
 }
 
 template<typename K, typename Comp>
