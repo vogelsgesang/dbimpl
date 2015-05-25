@@ -97,20 +97,28 @@ inline K BTree<K, Comp>::Leaf::getMaxKey() {
 }
 
 template<typename K, typename Comp>
-void BTree<K, Comp>::Node::insertKey(K key, uint64_t childPID) {
+void BTree<K, Comp>::Node::insertKey(K key, uint64_t leftChildPID,
+    uint64_t rightChildPID) {
+
+  //Insert Key with pointer to left child
   uint64_t pos = findKeyPos(key);
-  if (pos == count) {
-    upper = childPID;
-  }
+
   memmove(&keyChildPIDPairs[pos + 1], &keyChildPIDPairs[pos],
       sizeof(std::pair<K, uint64_t>) * (count - pos));
-  std::pair < K, uint64_t > keyPidPair(key, childPID);
+  std::pair < K, uint64_t > keyPidPair(key, leftChildPID);
   keyChildPIDPairs[pos] = keyPidPair;
+
+  //Update existing pointer to new (right) child
+  if (pos == count) {
+    upper = rightChildPID;
+  } else {
+    keyChildPIDPairs[pos + 1].second = rightChildPID;
+  }
   count++;
 }
 
 template<typename K, typename Comp>
-BufferFrame* BTree<K, Comp>::Node::split(BufferFrame* newFrame,
+BufferFrame* BTree<K, Comp>::Node::split(uint64_t curPID, BufferFrame* newFrame,
     BufferFrame* parent) {
   //Get new node
   Node* newNode = reinterpret_cast<Node*>(newFrame->getData());
@@ -122,37 +130,45 @@ BufferFrame* BTree<K, Comp>::Node::split(BufferFrame* newFrame,
   newNode->upper = upper;
   newNode->count = count - count / 2;
   count = count / 2;
-  upper = keyChildPIDPairs[count - 1].second;
-  (reinterpret_cast<Node*>(parent->getData()))->insertKey(getMaxKey(),
+  // upper = keyChildPIDPairs[count - 1].second;
+  upper = 0;
+  (reinterpret_cast<Node*>(parent->getData()))->insertKey(getMaxKey(), curPID,
       newFrame->pageId);
   return newFrame;
 
 }
 
 template<typename K, typename Comp>
-BufferFrame* BTree<K, Comp>::Leaf::split(BufferFrame* newFrame,
+BufferFrame* BTree<K, Comp>::Leaf::split(uint64_t curPID, BufferFrame* newFrame,
     BufferFrame* parent) {
   //Get new node
   Leaf* newLeaf = reinterpret_cast<Leaf*>(newFrame->getData());
   *newLeaf = Leaf();
   //split current Node
-  memmove(&newLeaf->keyTIDPairs[0], &keyTIDPairs[count / 2],
-      (count / 2) * sizeof(std::pair<K, uint64_t>));
+  uint64_t mid = count / 2;
+  memmove(&newLeaf->keyTIDPairs[0], &keyTIDPairs[mid],
+      (count - mid) * sizeof(std::pair<K, uint64_t>));
+
   newLeaf->next = next;
-  newLeaf->count = count - count / 2;
-  count = count / 2;
-  next = newLeaf;
-  (reinterpret_cast<Node*>(parent->getData()))->insertKey(getMaxKey(),
-      newFrame->pageId);
+  newLeaf->count = count - mid;
+  count = mid;
+  next = newFrame->pageId;
+  std::cout << "Left node: " << keyTIDPairs[0].first << "-"
+      << keyTIDPairs[count - 1].first << std::endl;
+  std::cout << "Right node: " << newLeaf->keyTIDPairs[0].first << "-"
+      << newLeaf->keyTIDPairs[newLeaf->count - 1].first << std::endl;
+  (reinterpret_cast<Node*>(parent->getData()))->insertKey(
+      keyTIDPairs[mid - 1].first, curPID, newFrame->pageId);
   return newFrame;
 
 }
 template<typename K, typename Comp>
 BufferFrame* BTree<K, Comp>::createNewRoot() {
-  BufferFrame* newFrame = &bufferManager.fixPage(++nextFreePage, true);
+  BufferFrame* newFrame = &bufferManager.fixPage(nextFreePage++, true);
   Node* newRoot = reinterpret_cast<Node*>(newFrame->getData());
   *newRoot = Node();
   rootPID = newFrame->pageId;
+  std::cout << "Created new root with PID " << rootPID << std::endl;
   return newFrame;
 
 }
@@ -167,15 +183,19 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
 
   while (!curNode->isLeaf()) {
     if (curNode->isFull()) {
-      std::cout << "Inner Node is full -> split" << std::endl;
+      std::cout << "Inner Node is full -> split (Key: " << key << ")"
+          << std::endl;
       // --> safe inner pages
 
       if (parFrame == NULL) {
         //Need to create a new root (parent) first
         parFrame = createNewRoot();
       }
-      BufferFrame* newFrame = &bufferManager.fixPage(++nextFreePage, true);
-      curNode->split(newFrame, parFrame);
+
+      std::cout << "Fix new page " << nextFreePage << std::endl;
+      BufferFrame* newFrame = &bufferManager.fixPage(nextFreePage++, true);
+      std::cout << "Fixed new page" << std::endl;
+      curNode->split(curFrame->pageId, newFrame, parFrame);
 
       //determine correct node and release the other one
       if (smaller(key, curNode->getMaxKey())) {
@@ -203,14 +223,14 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
   }
   Leaf* leaf = reinterpret_cast<Leaf*>(curNode);
   if (leaf->isFull()) {
-    //std::cout << "Leaf Node is full -> split" << std::endl;
+    std::cout << "Leaf Node is full -> split. Key " << key << std::endl;
     if (parFrame == NULL) {
       parFrame = createNewRoot();
-      std::cout << "Created new root" << std::endl;
     }
-    BufferFrame* newFrame = &bufferManager.fixPage(++nextFreePage, true);
-    leaf->split(newFrame, parFrame);
-   // std::cout << "Splitted leaf" << std::endl;
+    BufferFrame* newFrame = &bufferManager.fixPage(nextFreePage++, true);
+    leaf->split(curFrame->pageId, newFrame, parFrame);
+    std::cout << "Left Leaf has PID" << curFrame->pageId << std::endl;
+    std::cout << "Right  leaf has PID " <<newFrame->pageId << std::endl;
     if (smaller(key, leaf->getMaxKey())) {
       bufferManager.unfixPage(*newFrame, true);
     } else {
@@ -220,12 +240,13 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
     }
 
   }
-  leaf->insertKey(key, tid);
-  bufferManager.unfixPage(*curFrame, true); //TODO only set true when parent is really dirty?
 
   if (parFrame != NULL) {
     bufferManager.unfixPage(*parFrame, true);
   }
+
+  leaf->insertKey(key, tid);
+  bufferManager.unfixPage(*curFrame, true);
 
   return true;
 }
@@ -274,15 +295,20 @@ optional<uint64_t> BTree<K, Comp>::lookup(K key) {
     }
     parFrame = curFrame;
     uint64_t pos = curNode->findKeyPos(key);
+    std::cout << "Upper" << curNode->upper << " keyCHILDPID " << curNode->keyChildPIDPairs[pos].second << std::endl;
     uint64_t nextPID =
         (pos == curNode->count) ?
             curNode->upper : curNode->keyChildPIDPairs[pos].second;
     //latch the next level
+    std::cout << "Pos " << pos << " Next PID " << nextPID << " Key " << key
+        << std::endl;
     curFrame = &bufferManager.fixPage(nextPID, false);
     curNode = reinterpret_cast<Node*>(curFrame->getData());
   }
   Leaf* leaf = reinterpret_cast<Leaf*>(curNode);
   uint64_t pos = leaf->findKeyPos(key);
+  std::cout << "Pos in leaf" << pos << " Key " << key << " Memory "
+      << leaf->keyTIDPairs[pos].first << std::endl;
   uint64_t tid;
 
   bool found = false;

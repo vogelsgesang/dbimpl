@@ -21,6 +21,7 @@ TEST(BTreeTest, insertAndDeleteOneNode) {
   ASSERT_FALSE(test.lookup(10));
 
 }
+
 TEST(BTreeTest, insertandDeleteSortedNodes) {
   BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> test(bm);
@@ -40,22 +41,30 @@ TEST(BTreeTest, insertandDeleteSortedNodes) {
   }
 }
 
+
 TEST(BTreeTest, splitLeafs) {
   BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> test(bm);
-  for (int i = 0; i < 2000; i++) {
-     test.insert(i, 2 * i);
-   }
+  for (int i = 0; i < 1022; i++) {
+    test.insert(i, i);
+  }
+  for (int i = 0; i < 1022; i++) {
+    if (!test.lookup(i))
+      std::cout << "Failed Lookup " << i << std::endl;
+    ASSERT_TRUE(test.lookup(i));
+    EXPECT_EQ(i, test.lookup(i).get());
+  }
 }
-//TODO check--> correct fix/unfixes
 /*
 
-TEST(BTreeTest, splitInnerNode) {
-  BufferManager bm(50);
-  BTree<uint64_t, UInt64Cmp> test(bm);
-  for (int i = 0; i < 2000000; i++) {
-     test.insert(i, 2 * i);
-   }
-}
+ //TODO check--> correct fix/unfixes
+ TEST(BTreeTest, splitInnerNode) {
+ std::cout << "-------------------------------------" << std::endl;
+ BufferManager bm(50);
+ BTree<uint64_t, UInt64Cmp> test(bm);
+ for (uint64_t i = 0; i < 2000000; i++) {
+ test.insert(i, i);
+ }
+ }
 
 */
