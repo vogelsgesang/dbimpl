@@ -4,6 +4,7 @@
 #include <cstdint>
 //#include "utils/optional.h"
 #include <boost/optional.hpp>
+#include "buffer/bufferManager.h"
 
 using boost::optional;
 
@@ -41,7 +42,7 @@ private:
     inline uint64_t findKeyPos(const K key);
     inline bool isFull();
     inline K getMaxKey();
-    void insertKey(K key, uint64_t tid);
+    bool insertKey(K key, uint64_t tid);
     bool deleteKey(K key);
     BufferFrame* split(uint64_t curPID, BufferFrame* newFrame, BufferFrame* parent);
     Leaf() :
@@ -54,9 +55,12 @@ private:
 
   inline BufferFrame* createNewRoot();
 
+
+
   uint64_t rootPID;
   uint64_t nextFreePage = 0;
   BufferManager& bufferManager;
+  uint64_t elements; //number of elements --> needed for BTree Test
 
 public:
   BTree<K, Comp>(BufferManager& bm);
@@ -64,8 +68,10 @@ public:
   bool erase(K key);
   optional<uint64_t> lookup(K key); //Returns a TID or indicates that the key was not found.
   std::vector<uint64_t>::iterator lookupRange(K key1, K key2);
+  inline uint64_t size(){ return elements;}
 
   static Comp smaller;
+  static bool isEqual(K key1, K key2);
 };
 }
 #include "bTree.inl.cpp"

@@ -32,7 +32,7 @@ endif
 OBJ_DIR=build/$(BUILD_TYPE)
 
 .PHONY: all
-all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema bin/loadSchema bin/showSchema)
+all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema bin/loadSchema bin/showSchema bin/bTreeTest)
 
 .PHONY: test
 test: all
@@ -95,7 +95,7 @@ bin/showSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SHOW_SCHEMA_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-BTREE_OBJS=
+BTREE_OBJS=cli/BTreeTest.o buffer/bufferManager.o buffer/bufferFrame.o utils/checkedIO.o
 bin/bTreeTest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BTREE_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@

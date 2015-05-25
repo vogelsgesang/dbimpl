@@ -2,7 +2,7 @@ namespace dbImpl {
 
 template<typename K, typename Comp>
 BTree<K, Comp>::BTree(BufferManager& bm) :
-    bufferManager(bm) {
+    bufferManager(bm), elements(0) {
   BufferFrame& bf = bufferManager.fixPage(nextFreePage++, true);
   Leaf* root = reinterpret_cast<Leaf*>(bf.getData());
   rootPID = bf.pageId;
@@ -72,20 +72,25 @@ inline uint64_t BTree<K, Comp>::Leaf::findKeyPos(const K key) {
   }
   return left;
 }
-
 template<typename K, typename Comp>
-void BTree<K, Comp>::Leaf::insertKey(K key, uint64_t tid) {
+inline bool BTree<K,Comp>::isEqual(K key1, K key2){
+  return !(smaller(key1,key2) && !smaller(key2,key1));
+
+}
+template<typename K, typename Comp>
+bool BTree<K, Comp>::Leaf::insertKey(K key, uint64_t tid) {
   uint64_t pos = findKeyPos(key);
-  if (keyTIDPairs[pos].first == key && count != pos) {
-    std::cout << "Key " << key << " is already in tree. TID:"
+  if (BTree<K,Comp>::isEqual(keyTIDPairs[pos].first,key) && count != pos) {
+    std::cout << "Key is already in tree. TID:"
         << keyTIDPairs[pos].second << std::endl;
-    return;
+    return false;
   }
   memmove(&keyTIDPairs[pos + 1], &keyTIDPairs[pos],
       (count - pos) * sizeof(std::pair<K, uint64_t>)); // will probably only work in combination with Buffermanager
   std::pair < K, uint64_t > keyTIDpair(key, tid);
   keyTIDPairs[pos] = keyTIDpair;
   count++;
+  return true;
 }
 template<typename K, typename Comp>
 inline K BTree<K, Comp>::Node::getMaxKey() {
@@ -124,14 +129,17 @@ BufferFrame* BTree<K, Comp>::Node::split(uint64_t curPID, BufferFrame* newFrame,
   Node* newNode = reinterpret_cast<Node*>(newFrame->getData());
   *newNode = Node();
 
+  uint64_t mid = count/2;
   //split current Node
-  memmove(&newNode->keyChildPIDPairs[0], &keyChildPIDPairs[count / 2],
-      (count / 2) * sizeof(std::pair<K, uint64_t>));
+  memmove(&newNode->keyChildPIDPairs[0], &keyChildPIDPairs[mid],
+      (count -mid) * sizeof(std::pair<K, uint64_t>));
+
   newNode->upper = upper;
-  newNode->count = count - count / 2;
-  count = count / 2;
-  // upper = keyChildPIDPairs[count - 1].second;
-  upper = 0;
+  newNode->count = count - mid;
+  count = mid;
+  //biggest key of left node moves to parent
+  upper = keyChildPIDPairs[count - 1].second;
+
   (reinterpret_cast<Node*>(parent->getData()))->insertKey(getMaxKey(), curPID,
       newFrame->pageId);
   return newFrame;
@@ -179,7 +187,7 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
 
   while (!curNode->isLeaf()) {
     if (curNode->isFull()) {
-      std::cout << "Inner Node is full -> split (Key: " << key << ")"
+      std::cout << "Inner Node is full -> split"
           << std::endl;
       // --> safe inner pages
 
@@ -234,12 +242,16 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
 
   }
 
-  if (parFrame != NULL) {
-    bufferManager.unfixPage(*parFrame, true);
-  }
 
-  leaf->insertKey(key, tid);
+
+  if(leaf->insertKey(key, tid)){
+    elements++;
+  }
   bufferManager.unfixPage(*curFrame, true);
+
+  if (parFrame != NULL) {
+     bufferManager.unfixPage(*parFrame, true);
+   }
 
   return true;
 }
