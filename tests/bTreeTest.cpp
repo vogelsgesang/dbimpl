@@ -41,22 +41,20 @@ TEST(BTreeTest, insertandDeleteSortedNodes) {
   }
 }
 
-
 TEST(BTreeTest, splitLeafs) {
   BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> test(bm);
-  for (int i = 0; i < 1022; i++) {
+  for (int i = 0; i < 5000; i++) {
     test.insert(i, i);
   }
-  for (int i = 0; i < 1022; i++) {
+  for (int i = 0; i < 5000; i++) {
     if (!test.lookup(i))
-      std::cout << "Failed Lookup " << i << std::endl;
     ASSERT_TRUE(test.lookup(i));
     EXPECT_EQ(i, test.lookup(i).get());
   }
 }
-/*
 
+/*
  //TODO check--> correct fix/unfixes
  TEST(BTreeTest, splitInnerNode) {
  std::cout << "-------------------------------------" << std::endl;

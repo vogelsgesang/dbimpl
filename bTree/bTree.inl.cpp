@@ -153,10 +153,6 @@ BufferFrame* BTree<K, Comp>::Leaf::split(uint64_t curPID, BufferFrame* newFrame,
   newLeaf->count = count - mid;
   count = mid;
   next = newFrame->pageId;
-  std::cout << "Left node: " << keyTIDPairs[0].first << "-"
-      << keyTIDPairs[count - 1].first << std::endl;
-  std::cout << "Right node: " << newLeaf->keyTIDPairs[0].first << "-"
-      << newLeaf->keyTIDPairs[newLeaf->count - 1].first << std::endl;
   (reinterpret_cast<Node*>(parent->getData()))->insertKey(
       keyTIDPairs[mid - 1].first, curPID, newFrame->pageId);
   return newFrame;
@@ -223,14 +219,11 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
   }
   Leaf* leaf = reinterpret_cast<Leaf*>(curNode);
   if (leaf->isFull()) {
-    std::cout << "Leaf Node is full -> split. Key " << key << std::endl;
     if (parFrame == NULL) {
       parFrame = createNewRoot();
     }
     BufferFrame* newFrame = &bufferManager.fixPage(nextFreePage++, true);
     leaf->split(curFrame->pageId, newFrame, parFrame);
-    std::cout << "Left Leaf has PID" << curFrame->pageId << std::endl;
-    std::cout << "Right  leaf has PID " <<newFrame->pageId << std::endl;
     if (smaller(key, leaf->getMaxKey())) {
       bufferManager.unfixPage(*newFrame, true);
     } else {
@@ -295,20 +288,15 @@ optional<uint64_t> BTree<K, Comp>::lookup(K key) {
     }
     parFrame = curFrame;
     uint64_t pos = curNode->findKeyPos(key);
-    std::cout << "Upper" << curNode->upper << " keyCHILDPID " << curNode->keyChildPIDPairs[pos].second << std::endl;
     uint64_t nextPID =
         (pos == curNode->count) ?
             curNode->upper : curNode->keyChildPIDPairs[pos].second;
     //latch the next level
-    std::cout << "Pos " << pos << " Next PID " << nextPID << " Key " << key
-        << std::endl;
     curFrame = &bufferManager.fixPage(nextPID, false);
     curNode = reinterpret_cast<Node*>(curFrame->getData());
   }
   Leaf* leaf = reinterpret_cast<Leaf*>(curNode);
   uint64_t pos = leaf->findKeyPos(key);
-  std::cout << "Pos in leaf" << pos << " Key " << key << " Memory "
-      << leaf->keyTIDPairs[pos].first << std::endl;
   uint64_t tid;
 
   bool found = false;
