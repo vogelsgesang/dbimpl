@@ -123,8 +123,8 @@ void BTree<K, Comp>::Node::insertKey(K key, uint64_t leftChildPID,
 }
 
 template<typename K, typename Comp>
-BufferFrame* BTree<K, Comp>::Node::split(uint64_t curPID, BufferFrame* newFrame,
-    BufferFrame* parent) {
+uint64_t BTree<K, Comp>::Node::split(uint64_t curPID, BufferFrame* newFrame,
+    BufferFrame* parent, K key) {
   //Get new node
   Node* newNode = reinterpret_cast<Node*>(newFrame->getData());
   *newNode = Node();
@@ -133,18 +133,18 @@ BufferFrame* BTree<K, Comp>::Node::split(uint64_t curPID, BufferFrame* newFrame,
   //split current Node
   memmove(&newNode->keyChildPIDPairs[0], &keyChildPIDPairs[mid],
       (count -mid) * sizeof(std::pair<K, uint64_t>));
-
   newNode->upper = upper;
   newNode->count = count - mid;
   count = mid;
   //biggest key of left node moves to parent
+  uint64_t splitKey = getMaxKey();
   upper = keyChildPIDPairs[count - 1].second;
 
-  (reinterpret_cast<Node*>(parent->getData()))->insertKey(getMaxKey(), curPID,
-      newFrame->pageId);
-  return newFrame;
-
+  (reinterpret_cast<Node*>(parent->getData()))->insertKey(splitKey, curPID, newFrame->pageId);
+  //Determine sibling for further insert process
+  return (BTree::smaller(key,splitKey) ? curPID : newFrame->pageId);
 }
+
 
 template<typename K, typename Comp>
 BufferFrame* BTree<K, Comp>::Leaf::split(uint64_t curPID, BufferFrame* newFrame,
@@ -169,10 +169,9 @@ BufferFrame* BTree<K, Comp>::Leaf::split(uint64_t curPID, BufferFrame* newFrame,
 template<typename K, typename Comp>
 BufferFrame* BTree<K, Comp>::createNewRoot() {
   BufferFrame* newFrame = &bufferManager.fixPage(nextFreePage++, true);
+  rootPID = newFrame->pageId;
   Node* newRoot = reinterpret_cast<Node*>(newFrame->getData());
   *newRoot = Node();
-  rootPID = newFrame->pageId;
-  std::cout << "Created new root with PID " << rootPID << std::endl;
   return newFrame;
 
 }
@@ -184,42 +183,41 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
   BufferFrame* curFrame = &bufferManager.fixPage(rootPID, true);
   Node* curNode = reinterpret_cast<Node*>(curFrame->getData());
   BufferFrame* parFrame = NULL;
-
   while (!curNode->isLeaf()) {
     if (curNode->isFull()) {
-      std::cout << "Inner Node is full -> split"
-          << std::endl;
+      //std::cout << "Inner Node is full -> split " << key  << std::endl;
       // --> safe inner pages
 
       if (parFrame == NULL) {
         //Need to create a new root (parent) first
         parFrame = createNewRoot();
       }
-
-      std::cout << "Fix new page " << nextFreePage << std::endl;
       BufferFrame* newFrame = &bufferManager.fixPage(nextFreePage++, true);
-      std::cout << "Fixed new page" << std::endl;
-      curNode->split(curFrame->pageId, newFrame, parFrame);
+      //parFrame = &bufferManager.fixPage(parPID, true);
+      uint64_t nextPID = curNode->split(curFrame->pageId, newFrame, parFrame, key);
 
       //determine correct node and release the other one
-      if (smaller(key, curNode->getMaxKey())) {
+      if (nextPID == curFrame->pageId) {
         bufferManager.unfixPage(*newFrame, true);
       } else {
         curNode = reinterpret_cast<Node*>(newFrame->getData());
         bufferManager.unfixPage(*curFrame, true);
         curFrame = newFrame;
       }
-
     }
+
     //release the parent node
     if (parFrame != NULL) {
       bufferManager.unfixPage(*parFrame, true); //TODO only set true when parent is really dirty?
     }
     parFrame = curFrame;
     uint64_t pos = curNode->findKeyPos(key);
+
     uint64_t nextPID =
         (pos == curNode->count) ?
             curNode->upper : curNode->keyChildPIDPairs[pos].second;
+
+
     //latch the next level
     curFrame = &bufferManager.fixPage(nextPID, true);
     curNode = reinterpret_cast<Node*>(curFrame->getData());
@@ -230,6 +228,7 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
     if (parFrame == NULL) {
       parFrame = createNewRoot();
     }
+
     BufferFrame* newFrame = &bufferManager.fixPage(nextFreePage++, true);
     leaf->split(curFrame->pageId, newFrame, parFrame);
     if (smaller(key, leaf->getMaxKey())) {
@@ -242,17 +241,13 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
 
   }
 
-
-
   if(leaf->insertKey(key, tid)){
     elements++;
   }
   bufferManager.unfixPage(*curFrame, true);
-
   if (parFrame != NULL) {
      bufferManager.unfixPage(*parFrame, true);
    }
-
   return true;
 }
 

@@ -48,21 +48,20 @@ TEST(BTreeTest, splitLeafs) {
     test.insert(i, i);
   }
   for (int i = 0; i < 5000; i++) {
-    if (!test.lookup(i))
     ASSERT_TRUE(test.lookup(i));
     EXPECT_EQ(i, test.lookup(i).get());
   }
 }
 
-/*
- //TODO check--> correct fix/unfixes
- TEST(BTreeTest, splitInnerNode) {
- std::cout << "-------------------------------------" << std::endl;
- BufferManager bm(50);
- BTree<uint64_t, UInt64Cmp> test(bm);
- for (uint64_t i = 0; i < 2000000; i++) {
- test.insert(i, i);
- }
- }
+TEST(BTreeTest, splitInnerNode) {
+  BufferManager bm(50);
+  BTree<uint64_t, UInt64Cmp> test(bm);
+  for (uint64_t i = 0; i < 1000000; i++) {
+    test.insert(i, i);
+  }
+  for (int i = 0; i < 1000000; i++) {
+    ASSERT_TRUE(test.lookup(i));
+    EXPECT_EQ(i, test.lookup(i).get());
+  }
 
-*/
+}

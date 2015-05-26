@@ -24,7 +24,7 @@ private:
     inline bool isLeaf();
     inline K getMaxKey();
     uint64_t findKeyPos(const K key);
-    BufferFrame* split(uint64_t curPID, BufferFrame* newFrame, BufferFrame* parent);
+    uint64_t split(uint64_t curPID, BufferFrame* newFrame, BufferFrame* parent, K key);
     void insertKey(K key, uint64_t leftChildPID, uint64_t rightChildPID);
     Node() :
         count(0) {

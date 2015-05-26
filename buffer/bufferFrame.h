@@ -27,6 +27,9 @@ namespace dbImpl {
       // returns data from page
       uint8_t* getData();
 
+      //
+      bool isUsed;
+
     private:
       bool dirty;
       // pointer to the actual data

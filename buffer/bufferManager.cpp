@@ -9,6 +9,7 @@
 #include <system_error>
 #include <sstream>
 #include "utils/checkedIO.h"
+#include <iostream>
 
 namespace dbImpl {
   
@@ -77,15 +78,21 @@ namespace dbImpl {
         }
         continue; //we must recheck the loop condition
       }
+      BufferFrame* evictedFrame;
+      uint64_t evictedPageId;
+      bool foundPageToEvict = false;
+      while(!foundPageToEvict){
       // get page to be evicted from twoQ
-      uint64_t evictedPageId = twoQ.evict();
+      evictedPageId = twoQ.evict();
       auto frameIt = frames.find(evictedPageId);
       #ifdef DEBUG
       if(frameIt == frames.end()) {
         throw std::logic_error("trying to evict a page which is not in memory");
       }
       #endif
-      BufferFrame* evictedFrame = &frameIt->second;
+      evictedFrame = &frameIt->second;
+      foundPageToEvict = !evictedFrame->isUsed;
+      }
       // before deleting the frame, we need to get an exclusive lock on it
       evictedFrame->lock(true); //TODO: exception safe locking...
       // do we need to flush it?
@@ -117,7 +124,7 @@ namespace dbImpl {
         //the frame or might use the frame which we are currently trying to evict during
         //this time. If this happens, we simply try to evict another frame.
         //We MUST retrieve the frame from the map again since another thread might have deleted it already
-        frameIt = frames.find(evictedPageId);
+        auto frameIt = frames.find(evictedPageId);
         if(frameIt != frames.end()) {
           evictedFrame = &frameIt->second;
           //Only try to lock the frame. If it fails, another thread is already using
