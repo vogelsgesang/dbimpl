@@ -85,11 +85,11 @@ TEST(BTreeTest,givenTestCase) {
       assert(bTree.lookup(i) == i * i);
     }
   }
-/* TODO fix erase
+
   // Delete everything
   for (uint64_t i = 0; i < n; ++i)
     bTree.erase(i);
   std::cout << bTree.size() << std::endl;
   assert(bTree.size() == 0);
-  */
+
 }

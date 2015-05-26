@@ -278,6 +278,9 @@ bool BTree<K, Comp>::erase(K key) {
     bufferManager.unfixPage(*parFrame, false);
   }
   bufferManager.unfixPage(*curFrame, true);
+  if(deleted){
+    elements--; //update size of BTree
+  }
   return deleted;
 
 }
