@@ -137,7 +137,7 @@ uint64_t BTree<K, Comp>::Node::split(uint64_t curPID, BufferFrame* newFrame,
   newNode->count = count - mid;
   count = mid;
   //biggest key of left node moves to parent
-  uint64_t splitKey = getMaxKey();
+  K splitKey = getMaxKey();
   upper = keyChildPIDPairs[count - 1].second;
 
   (reinterpret_cast<Node*>(parent->getData()))->insertKey(splitKey, curPID, newFrame->pageId);
