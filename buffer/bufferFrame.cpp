@@ -1,6 +1,5 @@
 #include "buffer/bufferFrame.h"
 
-#include <iostream>
 #include <unistd.h>
 #include <stdlib.h>
 #include <system_error>
