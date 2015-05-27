@@ -10,7 +10,7 @@ namespace dbImpl {
     pthread_rwlock_init(&latch, nullptr);
     data = reinterpret_cast<uint8_t*> (malloc(pageSize));
     dirty = false;
-    isUsed = false;
+    users = 0;
   }
 
   BufferFrame::~BufferFrame() {
@@ -23,7 +23,7 @@ namespace dbImpl {
   }
 
   void BufferFrame::lock(bool exclusive) {
-    isUsed = true;
+    users++;
     int ret;
     if (exclusive) {
       ret = pthread_rwlock_wrlock(&latch);
@@ -56,7 +56,11 @@ namespace dbImpl {
     if(ret != 0) {
       throw std::system_error(std::error_code(ret, std::system_category()), "unable to unlock frame");
     }
-    isUsed = false;
+    users--;
+  }
+
+  bool BufferFrame::isUsed() {
+    return users > 0;
   }
 
 }

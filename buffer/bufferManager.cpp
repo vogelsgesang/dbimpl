@@ -100,7 +100,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
       }
 #endif
       evictedFrame = &frameIt->second;
-      if (evictedFrame->isUsed) {
+      if (evictedFrame->isUsed()) {
         //frame must not be evicted. Push it on stack to reinsert it into twoQ later.
         frameStack.push(evictedPageId);
       } else {

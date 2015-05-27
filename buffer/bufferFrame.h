@@ -27,11 +27,12 @@ namespace dbImpl {
       // returns data from page
       uint8_t* getData();
 
-      //
-      bool isUsed;
+
+      bool isUsed();
 
     private:
       bool dirty;
+      unsigned users;
       // pointer to the actual data
       uint8_t* data;
       // frame's lock

@@ -21,25 +21,12 @@ TEST(BTreeTest, insertAndDeleteOneNode) {
   ASSERT_FALSE(test.lookup(10));
 
 }
-
-TEST(BTreeTest, insertandDeleteSortedNodes) {
+TEST(BTreeTest, eraseOnEmptyTree) {
   BufferManager bm(50);
-  BTree<uint64_t, UInt64Cmp> test(bm);
-
-  for (int i = 0; i < 20; i++) {
-    test.insert(i, 2 * i);
-  }
-  for (int i = 0; i < 20; i++) {
-    ASSERT_TRUE(test.lookup(i));
-    EXPECT_EQ(i * 2, test.lookup(i).get());
-  }
-  for (int i = 0; i < 20; i++) {
-    test.erase(i);
-  }
-  for (int i = 0; i < 20; i++) {
-    ASSERT_FALSE(test.lookup(i));
-  }
+  BTree<uint64_t, UInt64Cmp> bTree(bm);
+  ASSERT_FALSE(bTree.erase(50));
 }
+
 
 TEST(BTreeTest, splitNodes) {
   BufferManager bm(50);
@@ -56,10 +43,10 @@ TEST(BTreeTest, splitNodes) {
 }
 
 TEST(BTreeTest,givenTestCase) {
-  BufferManager bm(2000);
+  BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> bTree(bm);
   // Insert values
-  uint64_t n = 1000*1000ul;
+  uint64_t n = 1000 * 1000ul;
   for (uint64_t i = 0; i < n; ++i)
     bTree.insert(i, i * i);
   assert(bTree.size() == n);
@@ -70,7 +57,7 @@ TEST(BTreeTest,givenTestCase) {
     boost::optional < uint64_t > tid = bTree.lookup(i);
     assert(tid == i * i);
   }
-  std::cout << bTree.size() << std::endl;
+
   // Delete some values
   for (uint64_t i = 0; i < n; ++i)
     if ((i % 7) == 0)
@@ -89,7 +76,6 @@ TEST(BTreeTest,givenTestCase) {
   // Delete everything
   for (uint64_t i = 0; i < n; ++i)
     bTree.erase(i);
-  std::cout << bTree.size() << std::endl;
   assert(bTree.size() == 0);
 
 }
