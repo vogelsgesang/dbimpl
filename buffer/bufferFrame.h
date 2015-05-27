@@ -32,7 +32,7 @@ namespace dbImpl {
 
     private:
       bool dirty;
-      unsigned users;
+      unsigned int users;
       // pointer to the actual data
       uint8_t* data;
       // frame's lock

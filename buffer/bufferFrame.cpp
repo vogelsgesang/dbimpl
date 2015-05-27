@@ -1,6 +1,7 @@
 #include "buffer/bufferFrame.h"
 
 #include <unistd.h>
+#include <algorithm> //std::min
 #include <stdlib.h>
 #include <system_error>
 
@@ -56,7 +57,7 @@ namespace dbImpl {
     if(ret != 0) {
       throw std::system_error(std::error_code(ret, std::system_category()), "unable to unlock frame");
     }
-    users--;
+    users = std::min((unsigned int)0,users-1);
   }
 
   bool BufferFrame::isUsed() {

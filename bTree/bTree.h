@@ -2,13 +2,15 @@
 #define _B_TREE_H_
 
 #include <cstdint>
-//#include "utils/optional.h"
+#include <vector>
+#include <iterator>
 #include <boost/optional.hpp>
 #include "buffer/bufferManager.h"
 
 using boost::optional;
 
 namespace dbImpl {
+
 
 template<typename K, typename Comp>
 class BTree {
@@ -47,13 +49,18 @@ private:
     BufferFrame* split(uint64_t curPID, BufferFrame* newFrame, BufferFrame* parent);
     Leaf() :
       isLeaf(~0),
-      count(0)  {
+      next(~0),
+      count(0)
+      {
     }
     ;
   };
 
 
   inline BufferFrame* createNewRoot();
+  BufferFrame* traverseToLeaf(K key, bool exclusiveLeaf);
+
+
 
 
 
@@ -67,7 +74,10 @@ public:
   bool insert(K key, uint64_t tid);
   bool erase(K key);
   optional<uint64_t> lookup(K key); //Returns a TID or indicates that the key was not found.
-  std::vector<uint64_t>::iterator lookupRange(K key1, K key2);
+
+
+  std::vector<uint64_t> lookupRange(K key1, K key2);
+
   inline uint64_t size(){ return elements;}
 
   static Comp smaller;

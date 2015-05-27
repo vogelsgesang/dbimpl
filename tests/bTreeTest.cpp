@@ -13,34 +13,41 @@ struct UInt64Cmp {
 
 TEST(BTreeTest, insertAndDeleteOneNode) {
   BufferManager bm(50);
-  BTree<uint64_t, UInt64Cmp> test(bm);
-  test.insert(10, 50);
-  ASSERT_TRUE(test.lookup(10));
-  EXPECT_EQ(50, test.lookup(10).get());
-  test.erase(10);
-  ASSERT_FALSE(test.lookup(10));
+  BTree<uint64_t, UInt64Cmp> bTree(bm);
+  bTree.insert(10, 50);
+  ASSERT_TRUE(bTree.lookup(10));
+  EXPECT_EQ(50, bTree.lookup(10).get());
+  bTree.erase(10);
+  ASSERT_FALSE(bTree.lookup(10));
 
 }
-TEST(BTreeTest, eraseOnEmptyTree) {
+TEST(BTreeTest, EmptyTree) {
   BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> bTree(bm);
+  EXPECT_EQ(0,bTree.size());
+  ASSERT_FALSE(bTree.lookup(50));
   ASSERT_FALSE(bTree.erase(50));
+
+  std::vector<uint64_t> vec = bTree.lookupRange(0,~0);
+  EXPECT_EQ(vec.size(),0);
+
 }
 
-
-TEST(BTreeTest, splitNodes) {
+TEST(BTreeTest, lookupRange) {
   BufferManager bm(50);
-  BTree<uint64_t, UInt64Cmp> test(bm);
-  for (uint64_t i = 0; i < 1000000; i++) {
-    test.insert(i, i);
+  BTree<uint64_t, UInt64Cmp> bTree(bm);
+
+  uint64_t n = 1000000;
+  for (uint64_t i = 0; i < n; i++) {
+    bTree.insert(i, i);
   }
-  EXPECT_EQ(1000000, test.size());
-  for (int i = 0; i < 1000000; i++) {
-    ASSERT_TRUE(test.lookup(i));
-    EXPECT_EQ(i, test.lookup(i).get());
-  }
+  std::vector<uint64_t> vec = bTree.lookupRange(100000,n-5000);
+  EXPECT_EQ(vec.size(),n-100000-5000+1);
+  EXPECT_EQ(100000,vec[0]);
+  EXPECT_EQ(n-5000,vec[vec.size()-1]);
 
 }
+
 
 TEST(BTreeTest,givenTestCase) {
   BufferManager bm(50);
@@ -79,3 +86,4 @@ TEST(BTreeTest,givenTestCase) {
   assert(bTree.size() == 0);
 
 }
+
