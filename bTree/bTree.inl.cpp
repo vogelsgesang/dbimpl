@@ -74,15 +74,16 @@ inline uint64_t BTree<K, Comp>::Leaf::findKeyPos(const K key) {
 }
 template<typename K, typename Comp>
 inline bool BTree<K, Comp>::isEqual(K key1, K key2) {
-  return !(smaller(key1, key2) && !smaller(key2, key1));
+  return !smaller(key1, key2) && !smaller(key2, key1);
 }
 
 template<typename K, typename Comp>
 bool BTree<K, Comp>::Leaf::insertKey(K key, uint64_t tid) {
   uint64_t pos = findKeyPos(key);
-  if (BTree<K, Comp>::isEqual(keyTIDPairs[pos].first, key) && count != pos) {
-    std::cout << "Key is already in tree. TID:" << keyTIDPairs[pos].second
-        << std::endl;
+
+  //Check if key is not already stored in Tree. Count != pos avoids random matches with old memory data.
+  if (count != pos && BTree<K, Comp>::isEqual(keyTIDPairs[pos].first, key)) {
+    // Key is already in tree
     return false;
   }
   memmove(&keyTIDPairs[pos + 1], &keyTIDPairs[pos],
@@ -311,7 +312,7 @@ std::vector<uint64_t> BTree<K, Comp>::lookupRange(K key1, K key2) {
   //Get Leaf of lower key
   K leftK = key1;
   K rightK = key2;
-  if (!smaller(key1, key2)) {
+  if (smaller(key2, key1)) {
     leftK = key2;
     rightK = key1;
   }
