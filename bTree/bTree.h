@@ -6,13 +6,14 @@
 #include <iterator>
 #include <boost/optional.hpp>
 #include <limits>
+#include <functional>
 #include "buffer/bufferManager.h"
 
 using boost::optional;
 
 namespace dbImpl {
 
-template<typename K, typename Comp>
+template<typename K, typename Comp = std::less<K>>
 class BTree {
 
   private:
@@ -20,6 +21,7 @@ class BTree {
       uint64_t upper; //upper page of right-most child
       uint64_t count; //number of entries
       std::pair<K, uint64_t> keyChildPIDPairs[1];
+
       inline bool isFull();
       inline bool isLeaf();
       inline K getMaxKey();
@@ -34,6 +36,7 @@ class BTree {
       uint64_t next; //next leaf node
       uint64_t count; //number of entries
       std::pair<K, uint64_t> keyTIDPairs[1];
+
       inline uint64_t findKeyPos(const K key);
       inline bool isFull();
       inline K getMaxKey();

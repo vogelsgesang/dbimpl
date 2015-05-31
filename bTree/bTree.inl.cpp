@@ -3,8 +3,10 @@
 namespace dbImpl {
 
 template<typename K, typename Comp>
-BTree<K, Comp>::BTree(BufferManager& bm) :
-    bufferManager(bm), elements(0) {
+BTree<K, Comp>::BTree(BufferManager& bm)
+  : bufferManager(bm)
+  , elements(0)
+{
   BufferFrame& bf = bufferManager.fixPage(nextFreePage++, true);
   Leaf* root = reinterpret_cast<Leaf*>(bf.getData());
   rootPID = bf.pageId;
@@ -36,7 +38,7 @@ inline uint64_t BTree<K, Comp>::Node::findKeyPos(const K key) {
   uint64_t mid;
   while (right != left) {
     mid = left + ((right - left) / 2);
-    if (BTree::smaller(keyChildPIDPairs[mid].first, key)) {
+    if (smaller(keyChildPIDPairs[mid].first, key)) {
       left = mid + 1;
     } else {
       right = mid;
@@ -67,7 +69,7 @@ inline uint64_t BTree<K, Comp>::Leaf::findKeyPos(const K key) {
 
   while (right != left) {
     mid = left + ((right - left) / 2);
-    if (BTree::smaller(keyTIDPairs[mid].first, key)) {
+    if (smaller(keyTIDPairs[mid].first, key)) {
       left = mid + 1;
     } else {
       right = mid;
@@ -147,7 +149,7 @@ uint64_t BTree<K, Comp>::Node::split(uint64_t curPID, BufferFrame* newFrame,
   (reinterpret_cast<Node*>(parent->getData()))->insertKey(splitKey, curPID,
       newFrame->pageId);
   //Determine sibling for further insert process
-  return (BTree::smaller(key, splitKey) ? curPID : newFrame->pageId);
+  return (smaller(key, splitKey) ? curPID : newFrame->pageId);
 }
 
 template<typename K, typename Comp>

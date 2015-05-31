@@ -73,15 +73,9 @@ const IntPair& getKey(const uint64_t& i) {
    return intPairs.back();
 }
 
-struct UInt64Cmp {
-  bool operator()(uint64_t a, uint64_t b) const {
-    return a < b;
-  }
-};
-
 TEST(BTreeTest, insertAndDeleteOneNode) {
   BufferManager bm(50);
-  BTree<uint64_t, UInt64Cmp> bTree(bm);
+  BTree<uint64_t> bTree(bm);
   bTree.insert(10, 50);
   ASSERT_TRUE(bTree.lookup(10));
   EXPECT_EQ(50, bTree.lookup(10).get());
@@ -91,7 +85,7 @@ TEST(BTreeTest, insertAndDeleteOneNode) {
 
 TEST(BTreeTest, EmptyTree) {
   BufferManager bm(50);
-  BTree<uint64_t, UInt64Cmp> bTree(bm);
+  BTree<uint64_t> bTree(bm);
   EXPECT_EQ(0,bTree.size());
   ASSERT_FALSE(bTree.lookup(50));
   ASSERT_FALSE(bTree.erase(50));
@@ -102,7 +96,7 @@ TEST(BTreeTest, EmptyTree) {
 
 TEST(BTreeTest, lookupRange) {
   BufferManager bm(50);
-  BTree<uint64_t, UInt64Cmp> bTree(bm);
+  BTree<uint64_t> bTree(bm);
 
   uint64_t n = 100000;
   for (uint64_t i = 0; i < n; i++) {
