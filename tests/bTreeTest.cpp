@@ -79,8 +79,6 @@ struct UInt64Cmp {
   }
 };
 
-
-
 TEST(BTreeTest, insertAndDeleteOneNode) {
   BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> bTree(bm);
@@ -90,6 +88,7 @@ TEST(BTreeTest, insertAndDeleteOneNode) {
   bTree.erase(10);
   ASSERT_FALSE(bTree.lookup(10));
 }
+
 TEST(BTreeTest, EmptyTree) {
   BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> bTree(bm);
@@ -99,8 +98,8 @@ TEST(BTreeTest, EmptyTree) {
 
   std::vector<uint64_t> vec = bTree.lookupRange(0,~0);
   EXPECT_EQ(vec.size(),0);
-
 }
+
 TEST(BTreeTest, lookupRange) {
   BufferManager bm(50);
   BTree<uint64_t, UInt64Cmp> bTree(bm);
@@ -115,12 +114,10 @@ TEST(BTreeTest, lookupRange) {
   EXPECT_EQ(n-5000,vec[vec.size()-1]);
 }
 
-
 template <class T, class CMP>
 void test(uint64_t n) {
    // Set up stuff, you probably have to change something here to match to your interfaces
    BufferManager bm(100);
-   // ...
    BTree<T, CMP> bTree(bm);
 
    // Insert values

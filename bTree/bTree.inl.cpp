@@ -1,3 +1,5 @@
+#include "bTree.h"
+
 namespace dbImpl {
 
 template<typename K, typename Comp>
@@ -15,6 +17,7 @@ inline bool BTree<K, Comp>::Node::isFull() {
   return (BufferManager::pageSize - sizeof(Node)
       - count * sizeof(std::pair<K, uint64_t>)) < sizeof(std::pair<K, uint64_t>);
 }
+
 template<typename K, typename Comp>
 inline bool BTree<K, Comp>::Leaf::isFull() {
   return (BufferManager::pageSize - sizeof(Leaf)
@@ -40,8 +43,8 @@ inline uint64_t BTree<K, Comp>::Node::findKeyPos(const K key) {
     }
   }
   return left;
-
 }
+
 template<typename K, typename Comp>
 bool BTree<K, Comp>::Leaf::deleteKey(K key) {
   uint64_t pos = findKeyPos(key);
