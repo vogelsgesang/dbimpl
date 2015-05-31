@@ -26,7 +26,7 @@ inline bool BTree<K, Comp>::Leaf::isFull() {
 
 template<typename K, typename Comp>
 inline bool BTree<K, Comp>::Node::isLeaf() {
-  return upper == ~0;
+  return upper == std::numeric_limits<uint64_t>::max();
 }
 
 template<typename K, typename Comp>
@@ -296,7 +296,7 @@ optional<uint64_t> BTree<K, Comp>::lookup(K key) {
   BufferFrame* leafFrame = traverseToLeaf(key, false);
   Leaf* leaf = reinterpret_cast<Leaf*>(leafFrame->getData());
   uint64_t pos = leaf->findKeyPos(key);
-  uint64_t tid = ~0;
+  uint64_t tid = std::numeric_limits<uint64_t>::max();
 
   bool found = false;
   if (pos < leaf->count && isEqual(key, leaf->keyTIDPairs[pos].first)) {
@@ -339,7 +339,7 @@ std::vector<uint64_t> BTree<K, Comp>::lookupRange(K key1, K key2) {
       resultSet.push_back(leaf->keyTIDPairs[pos].second);
       pos++;
     }
-    if (leaf->next == ~0) {
+    if (leaf->next == std::numeric_limits<uint64_t>::max()) {
       //There is no next leaf --> return
       bufferManager.unfixPage(*leafFrame, false);
       return resultSet;

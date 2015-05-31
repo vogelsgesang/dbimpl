@@ -5,6 +5,7 @@
 #include <vector>
 #include <iterator>
 #include <boost/optional.hpp>
+#include <limits>
 #include "buffer/bufferManager.h"
 
 using boost::optional;
@@ -40,8 +41,8 @@ class BTree {
       bool deleteKey(K key);
       BufferFrame* split(uint64_t curPID, BufferFrame* newFrame, BufferFrame* parent);
       Leaf()
-        : isLeaf(~0)
-        , next(~0)
+        : isLeaf(std::numeric_limits<uint64_t>::max())
+        , next(std::numeric_limits<uint64_t>::max())
         , count(0) {};
     };
 
