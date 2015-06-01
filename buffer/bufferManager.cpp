@@ -47,8 +47,7 @@ BufferManager::~BufferManager() {
     if (frame.dirty) {
       int segmentId = getSegmentIdForPageId(frame.pageId);
       int segmentFd = segmentFds.at(segmentId);
-      int offset = getPartIdForPageId(frame.pageId) * pageSize;
-      dbImpl::checkedPwrite(segmentFd, frame.getData(), pageSize, offset);
+      off_t offset = getPartIdForPageId(frame.pageId) * pageSize; dbImpl::checkedPwrite(segmentFd, frame.getData(), pageSize, offset);
     }
     //nobody will be able to acquire this lock in the meantime
     //since we are holding the globalLock. We must unlock the frame
@@ -126,7 +125,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
       // page IS dirty and needs to be flushed
       int segmentId = getSegmentIdForPageId(evictedFrame->pageId);
       int segmentFd = segmentFds.at(segmentId);
-      int offset = getPartIdForPageId(evictedFrame->pageId) * pageSize;
+      off_t offset = getPartIdForPageId(evictedFrame->pageId) * pageSize;
       //release the global lock, write the page
       globalLock.unlock();
       dbImpl::checkedPwrite(segmentFd, evictedFrame->getData(), pageSize,
@@ -209,7 +208,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
       segmentFds[segmentId] = segmentFd;
     }
 
-    int offset = getPartIdForPageId(pageId) * pageSize;
+    off_t offset = getPartIdForPageId(pageId) * pageSize;
     // does this page already exist on the disk?
     struct stat segmentStat;
     if (fstat(segmentFd, &segmentStat) != 0) {
