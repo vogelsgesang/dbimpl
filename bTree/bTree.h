@@ -9,56 +9,34 @@
 #include <functional>
 #include "buffer/bufferManager.h"
 
-using boost::optional;
-
 namespace dbImpl {
 
-template<typename K, typename Comp = std::less<K>>
-class BTree {
+  template<typename K, typename Comp = std::less<K>>
+  class BTree {
 
-  private:
-    struct Node {
-      uint64_t count; //number of entries
-      uint64_t leafMarker; //set to 0 for all inner nodes
-      uint64_t next; //for inner nodes: upper page of right-most child; for leafs: PID of next page
-      std::pair<K, uint64_t> keyValuePairs[1];
+    private:
+      inline BufferFrame* createNewRoot();
+      BufferFrame* traverseToLeaf(K key, bool exclusiveLeaf);
 
-      inline bool isLeaf();
-      uint64_t findKeyPos(const K key, const Comp& smaller);
-      bool insertKey(K key, uint64_t tid, const Comp& smaller);
-      void insertInnerKey(K key, uint64_t leftChildPID, uint64_t rightChildPID, const Comp& smaller);
-      bool deleteKey(K key, const Comp& smaller);
-      K split(uint64_t ownPID, BufferFrame* newFrame, BufferFrame* parent, const Comp& comp); //returns the used split key
-      Node(bool isLeaf)
-        : count(0)
-        , leafMarker(isLeaf)
-        , next(std::numeric_limits<uint64_t>::max()) {}
-    };
+      uint64_t rootPID;
+      uint64_t nextFreePage = 0;
+      BufferManager& bufferManager;
+      uint64_t elements; //number of elements --> needed for BTree Test
+      uint64_t maxNodeSize;
+      const Comp& smaller;
 
-    inline BufferFrame* createNewRoot();
-    BufferFrame* traverseToLeaf(K key, bool exclusiveLeaf);
+    public:
+      BTree<K, Comp>(BufferManager& bm, const Comp& comp = Comp(), uint64_t maxNodeSize = std::numeric_limits<uint64_t>::max());
+      bool insert(K key, uint64_t tid);
+      bool erase(K key);
+      boost::optional<uint64_t> lookup(K key); //Returns a TID or indicates that the key was not found.
 
-    uint64_t rootPID;
-    uint64_t nextFreePage = 0;
-    BufferManager& bufferManager;
-    uint64_t elements; //number of elements --> needed for BTree Test
-    uint64_t maxNodeSize;
-    const Comp& smaller;
+      std::vector<uint64_t> lookupRange(K key1, K key2);
 
-  public:
-    BTree<K, Comp>(BufferManager& bm, const Comp& comp = Comp(), uint64_t maxNodeSize = std::numeric_limits<uint64_t>::max());
-    bool insert(K key, uint64_t tid);
-    bool erase(K key);
-    optional<uint64_t> lookup(K key); //Returns a TID or indicates that the key was not found.
+      inline uint64_t size(){ return elements;}
 
-    std::vector<uint64_t> lookupRange(K key1, K key2);
-
-    inline uint64_t size(){ return elements;}
-
-    void exportAsDot(std::ostream& out);
-
-    static bool isEqual(K key1, K key2, const Comp& smaller);
-};
+      void exportAsDot(std::ostream& out);
+  };
 }
 
 #include "bTree.inl.cpp"
