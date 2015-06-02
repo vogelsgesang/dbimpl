@@ -3,7 +3,6 @@
 
 #include <string>
 #include <cstdint>
-#include <cassert>
 #include <vector>
 #include <sstream>
 #include <stdlib.h>
@@ -122,9 +121,9 @@ void test(uint64_t n) {
 
    // Check if they can be retrieved
    for (uint64_t i=0; i<n; ++i) {
-      assert(bTree.lookup(getKey<T>(i)));
+      ASSERT_TRUE(bTree.lookup(getKey<T>(i))) << "key: " << i;
       boost::optional<TID> tid = bTree.lookup(getKey<T>(i));
-      assert(tid==i*i);
+      ASSERT_EQ(i*i, tid);
    }
 
    // Delete some values
@@ -135,16 +134,16 @@ void test(uint64_t n) {
    // Check if the right ones have been deleted
    for (uint64_t i=0; i<n; ++i) {
       if ((i%7)==0) {
-         assert(!bTree.lookup(getKey<T>(i)));
+         ASSERT_FALSE(bTree.lookup(getKey<T>(i)));
       } else {
-         assert(bTree.lookup(getKey<T>(i))==i*i);
+         ASSERT_TRUE(bTree.lookup(getKey<T>(i))==i*i);
       }
    }
 
    // Delete everything
    for (uint64_t i=0; i<n; ++i)
       bTree.erase(getKey<T>(i));
-   assert(bTree.size()==0);
+   ASSERT_EQ(0, bTree.size());
 }
 TEST(BTreeTest, Uint64_t) {
   uint64_t n = 1000*1000ul;
