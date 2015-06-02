@@ -1,5 +1,6 @@
 #include "bTree.h"
 #include <deque>
+#include <cstring>
 
 namespace dbImpl {
 
@@ -51,7 +52,7 @@ bool BTree<K, Comp>::Node::insertKey(K key, uint64_t tid) {
     // Key is already in tree
     return false;
   }
-  memmove(&keyValuePairs[pos + 1], &keyValuePairs[pos],
+  std::memmove(&keyValuePairs[pos + 1], &keyValuePairs[pos],
       (count - pos) * sizeof(std::pair<K, uint64_t>)); // will probably only work in combination with Buffermanager
   std::pair < K, uint64_t > keyTIDpair(key, tid);
   keyValuePairs[pos] = keyTIDpair;
@@ -63,7 +64,7 @@ template<typename K, typename Comp>
 void BTree<K, Comp>::Node::insertInnerKey(K key, uint64_t leftChildPID, uint64_t rightChildPID) {
   //Insert Key with pointer to left child
   uint64_t pos = findKeyPos(key);
-  memmove(&keyValuePairs[pos + 1], &keyValuePairs[pos],
+  std::memmove(&keyValuePairs[pos + 1], &keyValuePairs[pos],
       sizeof(std::pair<K, uint64_t>) * (count - pos));
   std::pair < K, uint64_t > keyPidPair(key, leftChildPID);
   keyValuePairs[pos] = keyPidPair;
@@ -84,7 +85,7 @@ bool BTree<K, Comp>::Node::deleteKey(K key) {
   if (pos < count && isEqual(key, keyValuePairs[pos].first)) {
     deleted = true;
     count--;
-    memmove(&keyValuePairs[pos], &keyValuePairs[pos + 1],
+    std::memmove(&keyValuePairs[pos], &keyValuePairs[pos + 1],
         (count - pos) * sizeof(std::pair<K, uint64_t>));
   }
   return deleted;
@@ -98,7 +99,7 @@ K BTree<K, Comp>::Node::split(uint64_t ownPID, BufferFrame* newFrame,
   *newNode = Node(this->isLeaf());
   //split current Node
   uint64_t mid = count / 2;
-  memmove(&newNode->keyValuePairs[0], &keyValuePairs[mid],
+  std::memmove(&newNode->keyValuePairs[0], &keyValuePairs[mid],
       (count - mid) * sizeof(std::pair<K, uint64_t>));
   newNode->count = count - mid;
   newNode->next = next;
