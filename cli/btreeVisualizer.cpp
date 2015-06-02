@@ -20,7 +20,7 @@ int main(int argc, const char* []) {
   }
 
   dbImpl::BufferManager bm(100);
-  dbImpl::BTree<int> tree(bm);
+  dbImpl::BTree<int> tree(bm, 6); //for testing, use a maximum node size of 6
 
   bool running = true;
   while(running && !std::cin.eof()) {
@@ -67,7 +67,25 @@ bool executeCommand(const std::string& command, dbImpl::BTree<int>* tree) {
     }
     return true;
   } else if(cmdName == "l") {
-    //TODO: implement
+    //parse parameters
+    auto range = parseRange(tokens);
+    if(!range) {
+      std::cout << "unable to interpret the range of keys to be looked up" << std::endl
+                << "usage: l <first> [<last> [<stepSize>]]" << std::endl;
+    } else {
+      int first    = std::get<0>(*range);
+      int last     = std::get<1>(*range);
+      int stepSize = std::get<2>(*range);
+      //delete all the values
+      for(int i = first; i <= last; i+=stepSize) {
+        auto result = tree->lookup(i);
+        if(result) {
+          std::cout << i << ": " << *result << std::endl;
+        } else {
+          std::cout << i << ": unable to lookup" << std::endl;
+        }
+      }
+    }
     return true;
   } else if(cmdName == "d") {
     //parse parameters

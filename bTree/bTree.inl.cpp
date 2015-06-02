@@ -4,10 +4,12 @@
 namespace dbImpl {
 
 template<typename K, typename Comp>
-BTree<K, Comp>::BTree(BufferManager& bm)
+BTree<K, Comp>::BTree(BufferManager& bm, uint64_t _maxNodeSize)
   : bufferManager(bm)
   , elements(0)
 {
+  this->maxNodeSize = std::min(_maxNodeSize,
+      ((BufferManager::pageSize - sizeof(Node)) / sizeof(std::pair<K, uint64_t>)));
   BufferFrame& bf = bufferManager.fixPage(nextFreePage++, true);
   rootPID = bf.pageId;
   Node* root = reinterpret_cast<Node*>(bf.getData());
@@ -18,13 +20,6 @@ BTree<K, Comp>::BTree(BufferManager& bm)
 template<typename K, typename Comp>
 inline bool BTree<K, Comp>::isEqual(K key1, K key2) {
   return !smaller(key1, key2) && !smaller(key2, key1);
-}
-
-template<typename K, typename Comp>
-inline bool BTree<K, Comp>::Node::isFull() {
-  return count >= 10;
-  //return (BufferManager::pageSize - sizeof(Node)
-      //- count * sizeof(std::pair<K, uint64_t>)) < sizeof(std::pair<K, uint64_t>);
 }
 
 template<typename K, typename Comp>
@@ -96,11 +91,6 @@ bool BTree<K, Comp>::Node::deleteKey(K key) {
 }
 
 template<typename K, typename Comp>
-inline K BTree<K, Comp>::Node::getMaxKey() {
-  return keyValuePairs[count - 1].first;
-}
-
-template<typename K, typename Comp>
 K BTree<K, Comp>::Node::split(uint64_t ownPID, BufferFrame* newFrame,
     BufferFrame* parent) {
   //Get new node
@@ -169,7 +159,7 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
   Node* curNode = reinterpret_cast<Node*>(curFrame->getData());
   BufferFrame* parFrame = NULL;
   while (!curNode->isLeaf()) {
-    if (curNode->isFull()) {
+    if (curNode->count >= maxNodeSize) {
       // --> split to safe inner pages
       if (parFrame == NULL) {
         //Need to create a new root (parent) first
@@ -204,7 +194,7 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
   }
 
   Node* leaf = reinterpret_cast<Node*>(curNode);
-  if (leaf->isFull()) {
+  if (leaf->count >= maxNodeSize) {
     if (parFrame == NULL) {
       parFrame = createNewRoot();
     }

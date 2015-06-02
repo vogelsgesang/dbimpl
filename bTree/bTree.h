@@ -23,9 +23,7 @@ class BTree {
       uint64_t next; //for inner nodes: upper page of right-most child; for leafs: PID of next page
       std::pair<K, uint64_t> keyValuePairs[1];
 
-      inline bool isFull();
       inline bool isLeaf();
-      inline K getMaxKey();
       uint64_t findKeyPos(const K key);
       bool insertKey(K key, uint64_t tid);
       void insertInnerKey(K key, uint64_t leftChildPID, uint64_t rightChildPID);
@@ -44,9 +42,10 @@ class BTree {
     uint64_t nextFreePage = 0;
     BufferManager& bufferManager;
     uint64_t elements; //number of elements --> needed for BTree Test
+    uint64_t maxNodeSize;
 
   public:
-    BTree<K, Comp>(BufferManager& bm);
+    BTree<K, Comp>(BufferManager& bm, uint64_t maxNodeSize = std::numeric_limits<uint64_t>::max());
     bool insert(K key, uint64_t tid);
     bool erase(K key);
     optional<uint64_t> lookup(K key); //Returns a TID or indicates that the key was not found.
