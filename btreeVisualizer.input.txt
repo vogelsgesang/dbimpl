@@ -1,0 +1,22 @@
+# all lines starting with an octothrope are comments
+
+# insert nodes 1 - 100
+i 1 100
+# you can visualize the tree using `v`
+v
+# lookup a key
+l 10
+# lookup keys 10, 12, 14, 16, 18 and 20
+l 10 20 2
+# insert node 101
+i 101
+# trying to insert it again will fail
+i 101
+# you can specify a step size as third paramer
+i 102 200 2
+i 200 300 3
+# you can pass a filename to v
+v complete_tree
+# delete some keys
+d 1
+d 10 20 2

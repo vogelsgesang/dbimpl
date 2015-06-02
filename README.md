@@ -77,4 +77,6 @@ An implementation of slotted pages can be found in `slottedPages`.
 
 A template implementation of a B+-Tree can be found in `bTree`.
 It uses the existing implemtation of the buffer manager to store its nodes.
-Concurrent access is provided by safing inner pages on insert operations.
+Concurrent access is provided by lock coupling.
+
+A simple CLI is available as `bin/btreeVisualizer`. The file `btreeVisualizer.input.txt` contains some example commands.
