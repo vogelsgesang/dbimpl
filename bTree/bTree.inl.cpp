@@ -111,11 +111,16 @@ K BTree<K, Comp>::Node::split(uint64_t ownPID, BufferFrame* newFrame,
   memmove(&newNode->keyValuePairs[0], &keyValuePairs[mid],
       (count - mid) * sizeof(std::pair<K, uint64_t>));
   newNode->count = count - mid;
-  count = mid;
   newNode->next = next;
-  next = this->isLeaf() ? newFrame->pageId : keyValuePairs[count-1].second;
+  if(this->isLeaf()) {
+    count = mid;
+    next = newFrame->pageId;
+  } else {
+    count = mid-1;
+    next = keyValuePairs[count].second;
+  }
   //biggest key of left node moves to parent
-  K splitKey = getMaxKey();
+  K splitKey = keyValuePairs[mid-1].first;
   (reinterpret_cast<Node*>(parent->getData()))
     ->insertInnerKey(splitKey, ownPID, newFrame->pageId);
   return splitKey;
