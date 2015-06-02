@@ -20,7 +20,7 @@ int main(int argc, const char* []) {
   }
 
   dbImpl::BufferManager bm(100);
-  dbImpl::BTree<int> tree(bm, 6); //for testing, use a maximum node size of 6
+  dbImpl::BTree<int> tree(bm, std::less<int>(), 6); //for testing, use a maximum node size of 6
 
   bool running = true;
   while(running && !std::cin.eof()) {

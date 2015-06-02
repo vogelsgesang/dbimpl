@@ -24,11 +24,11 @@ class BTree {
       std::pair<K, uint64_t> keyValuePairs[1];
 
       inline bool isLeaf();
-      uint64_t findKeyPos(const K key);
-      bool insertKey(K key, uint64_t tid);
-      void insertInnerKey(K key, uint64_t leftChildPID, uint64_t rightChildPID);
-      bool deleteKey(K key);
-      K split(uint64_t ownPID, BufferFrame* newFrame, BufferFrame* parent); //returns the used split key
+      uint64_t findKeyPos(const K key, const Comp& smaller);
+      bool insertKey(K key, uint64_t tid, const Comp& smaller);
+      void insertInnerKey(K key, uint64_t leftChildPID, uint64_t rightChildPID, const Comp& smaller);
+      bool deleteKey(K key, const Comp& smaller);
+      K split(uint64_t ownPID, BufferFrame* newFrame, BufferFrame* parent, const Comp& comp); //returns the used split key
       Node(bool isLeaf)
         : count(0)
         , leafMarker(isLeaf)
@@ -43,9 +43,10 @@ class BTree {
     BufferManager& bufferManager;
     uint64_t elements; //number of elements --> needed for BTree Test
     uint64_t maxNodeSize;
+    const Comp& smaller;
 
   public:
-    BTree<K, Comp>(BufferManager& bm, uint64_t maxNodeSize = std::numeric_limits<uint64_t>::max());
+    BTree<K, Comp>(BufferManager& bm, const Comp& comp = Comp(), uint64_t maxNodeSize = std::numeric_limits<uint64_t>::max());
     bool insert(K key, uint64_t tid);
     bool erase(K key);
     optional<uint64_t> lookup(K key); //Returns a TID or indicates that the key was not found.
@@ -56,11 +57,8 @@ class BTree {
 
     void exportAsDot(std::ostream& out);
 
-    static Comp smaller;
-    static bool isEqual(K key1, K key2);
+    static bool isEqual(K key1, K key2, const Comp& smaller);
 };
-template<typename K, typename Comp>
-Comp BTree<K, Comp>::smaller;
 }
 
 #include "bTree.inl.cpp"

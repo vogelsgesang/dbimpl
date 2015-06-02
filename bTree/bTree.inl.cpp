@@ -5,9 +5,10 @@
 namespace dbImpl {
 
 template<typename K, typename Comp>
-BTree<K, Comp>::BTree(BufferManager& bm, uint64_t _maxNodeSize)
+BTree<K, Comp>::BTree(BufferManager& bm, const Comp& comp, uint64_t _maxNodeSize)
   : bufferManager(bm)
   , elements(0)
+  , smaller(comp)
 {
   this->maxNodeSize = std::min(_maxNodeSize,
       ((BufferManager::pageSize - sizeof(Node)) / sizeof(std::pair<K, uint64_t>)));
@@ -19,7 +20,7 @@ BTree<K, Comp>::BTree(BufferManager& bm, uint64_t _maxNodeSize)
 }
 
 template<typename K, typename Comp>
-inline bool BTree<K, Comp>::isEqual(K key1, K key2) {
+inline bool BTree<K, Comp>::isEqual(K key1, K key2, const Comp& smaller) {
   return !smaller(key1, key2) && !smaller(key2, key1);
 }
 
@@ -29,7 +30,7 @@ inline bool BTree<K, Comp>::Node::isLeaf() {
 }
 
 template<typename K, typename Comp>
-inline uint64_t BTree<K, Comp>::Node::findKeyPos(const K key) {
+inline uint64_t BTree<K, Comp>::Node::findKeyPos(const K key, const Comp& smaller) {
   uint64_t left = 0;
   uint64_t right = count;
   while (right != left) {
@@ -44,11 +45,11 @@ inline uint64_t BTree<K, Comp>::Node::findKeyPos(const K key) {
 }
 
 template<typename K, typename Comp>
-bool BTree<K, Comp>::Node::insertKey(K key, uint64_t tid) {
-  uint64_t pos = findKeyPos(key);
+bool BTree<K, Comp>::Node::insertKey(K key, uint64_t tid, const Comp& smaller) {
+  uint64_t pos = findKeyPos(key, smaller);
 
   //Check if key is not already stored in Tree. Count != pos avoids random matches with old memory data.
-  if (count != pos && BTree<K, Comp>::isEqual(keyValuePairs[pos].first, key)) {
+  if (count != pos && BTree<K, Comp>::isEqual(keyValuePairs[pos].first, key, smaller)) {
     // Key is already in tree
     return false;
   }
@@ -61,9 +62,9 @@ bool BTree<K, Comp>::Node::insertKey(K key, uint64_t tid) {
 }
 
 template<typename K, typename Comp>
-void BTree<K, Comp>::Node::insertInnerKey(K key, uint64_t leftChildPID, uint64_t rightChildPID) {
+void BTree<K, Comp>::Node::insertInnerKey(K key, uint64_t leftChildPID, uint64_t rightChildPID, const Comp& smaller) {
   //Insert Key with pointer to left child
-  uint64_t pos = findKeyPos(key);
+  uint64_t pos = findKeyPos(key, smaller);
   std::memmove(&keyValuePairs[pos + 1], &keyValuePairs[pos],
       sizeof(std::pair<K, uint64_t>) * (count - pos));
   std::pair < K, uint64_t > keyPidPair(key, leftChildPID);
@@ -79,10 +80,10 @@ void BTree<K, Comp>::Node::insertInnerKey(K key, uint64_t leftChildPID, uint64_t
 }
 
 template<typename K, typename Comp>
-bool BTree<K, Comp>::Node::deleteKey(K key) {
-  uint64_t pos = findKeyPos(key);
+bool BTree<K, Comp>::Node::deleteKey(K key, const Comp& smaller) {
+  uint64_t pos = findKeyPos(key, smaller);
   bool deleted = false;
-  if (pos < count && isEqual(key, keyValuePairs[pos].first)) {
+  if (pos < count && isEqual(key, keyValuePairs[pos].first, smaller)) {
     deleted = true;
     count--;
     std::memmove(&keyValuePairs[pos], &keyValuePairs[pos + 1],
@@ -92,8 +93,7 @@ bool BTree<K, Comp>::Node::deleteKey(K key) {
 }
 
 template<typename K, typename Comp>
-K BTree<K, Comp>::Node::split(uint64_t ownPID, BufferFrame* newFrame,
-    BufferFrame* parent) {
+K BTree<K, Comp>::Node::split(uint64_t ownPID, BufferFrame* newFrame, BufferFrame* parent, const Comp& smaller) {
   //Get new node
   Node* newNode = reinterpret_cast<Node*>(newFrame->getData());
   *newNode = Node(this->isLeaf());
@@ -113,7 +113,7 @@ K BTree<K, Comp>::Node::split(uint64_t ownPID, BufferFrame* newFrame,
   //biggest key of left node moves to parent
   K splitKey = keyValuePairs[mid-1].first;
   (reinterpret_cast<Node*>(parent->getData()))
-    ->insertInnerKey(splitKey, ownPID, newFrame->pageId);
+    ->insertInnerKey(splitKey, ownPID, newFrame->pageId, smaller);
   return splitKey;
 }
 
@@ -138,7 +138,7 @@ BufferFrame* BTree<K, Comp>::traverseToLeaf(K key, bool exclusiveLeaf) {
       bufferManager.unfixPage(*parFrame, false);
     }
     parFrame = curFrame;
-    uint64_t pos = curNode->findKeyPos(key);
+    uint64_t pos = curNode->findKeyPos(key, smaller);
     uint64_t nextPID =
         (pos == curNode->count) ?
             curNode->next : curNode->keyValuePairs[pos].second;
@@ -167,7 +167,7 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
         parFrame = createNewRoot();
       }
       BufferFrame* newFrame = &bufferManager.fixPage(nextFreePage++, true);
-      K splitKey = curNode->split(curFrame->pageId, newFrame, parFrame);
+      K splitKey = curNode->split(curFrame->pageId, newFrame, parFrame, smaller);
 
       //determine correct node and release the other one
       if (smaller(key, splitKey)) {
@@ -186,7 +186,7 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
     parFrame = curFrame;
 
     //latch the next level
-    uint64_t pos = curNode->findKeyPos(key);
+    uint64_t pos = curNode->findKeyPos(key, smaller);
     uint64_t nextPID =
         (pos == curNode->count) ?
             curNode->next : curNode->keyValuePairs[pos].second;
@@ -201,7 +201,7 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
     }
 
     BufferFrame* newFrame = &bufferManager.fixPage(nextFreePage++, true);
-    K splitKey = leaf->split(curFrame->pageId, newFrame, parFrame);
+    K splitKey = leaf->split(curFrame->pageId, newFrame, parFrame, smaller);
     if (smaller(key, splitKey)) {
       bufferManager.unfixPage(*newFrame, true);
     } else {
@@ -214,7 +214,7 @@ bool BTree<K, Comp>::insert(K key, uint64_t tid) {
     bufferManager.unfixPage(*parFrame, true); //TODO: only mark dirty when parent was actually updated
   }
 
-  bool insertSuccessful = leaf->insertKey(key, tid);
+  bool insertSuccessful = leaf->insertKey(key, tid, smaller);
   if (insertSuccessful) {
     elements++;
   }
@@ -226,7 +226,7 @@ template<typename K, typename Comp>
 bool BTree<K, Comp>::erase(K key) {
   BufferFrame* leafFrame = traverseToLeaf(key, true);
   Node* leaf = reinterpret_cast<Node*>(leafFrame->getData());
-  bool deleted = leaf->deleteKey(key);
+  bool deleted = leaf->deleteKey(key, smaller);
   bufferManager.unfixPage(*leafFrame, true);
   if (deleted) {
     elements--; //update size of BTree
@@ -238,11 +238,11 @@ template<typename K, typename Comp>
 optional<uint64_t> BTree<K, Comp>::lookup(K key) {
   BufferFrame* leafFrame = traverseToLeaf(key, false);
   Node* leaf = reinterpret_cast<Node*>(leafFrame->getData());
-  uint64_t pos = leaf->findKeyPos(key);
+  uint64_t pos = leaf->findKeyPos(key, smaller);
   uint64_t tid = std::numeric_limits<uint64_t>::max();
 
   bool found = false;
-  if (pos < leaf->count && isEqual(key, leaf->keyValuePairs[pos].first)) {
+  if (pos < leaf->count && isEqual(key, leaf->keyValuePairs[pos].first, smaller)) {
     found = true;
     tid = leaf->keyValuePairs[pos].second;
   }
@@ -268,7 +268,7 @@ std::vector<uint64_t> BTree<K, Comp>::lookupRange(K key1, K key2) {
   BufferFrame* leafFrame = traverseToLeaf(leftK, false);
   Node* leaf = reinterpret_cast<Node*>(leafFrame->getData());
 
-  uint64_t pos = leaf->findKeyPos(leftK);
+  uint64_t pos = leaf->findKeyPos(leftK, smaller);
   if (pos >= leaf->count || smaller(leaf->keyValuePairs[pos].first, leftK)) {
     //No matching key was found
     bufferManager.unfixPage(*leafFrame, false);
