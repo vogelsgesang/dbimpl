@@ -32,7 +32,7 @@ endif
 OBJ_DIR=build/$(BUILD_TYPE)
 
 .PHONY: all
-all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema bin/loadSchema bin/showSchema)
+all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema bin/loadSchema bin/showSchema bin/btreeVisualizer)
 
 .PHONY: test
 test: all
@@ -95,8 +95,8 @@ bin/showSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SHOW_SCHEMA_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-BTREE_OBJS=buffer/bufferManager.o buffer/bufferFrame.o utils/checkedIO.o #cli/BTreeTest.o 
-bin/bTreeTest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BTREE_OBJS))
+BTREE_VISUALIZER_OBJS=cli/btreeVisualizer.o buffer/bufferManager.o buffer/bufferFrame.o utils/checkedIO.o #cli/BTreeTest.o 
+bin/btreeVisualizer$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BTREE_VISUALIZER_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
@@ -144,10 +144,15 @@ $(OBJ_DIR)/gtest_main.a: $(OBJ_DIR)/gtest-all.o $(OBJ_DIR)/gtest_main.o
 ############################
 #automatically generate Make rules for the included header files
 ############################
-build/deps/%.d: %.cpp
+build/deps/%.cpp.d: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MF $@ -MM -MP -MT $@ -MT $(basename $@).o $<
+
+build/deps/%.h.d: %.h
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MF $@ -MM -MP -MT $@ -MT $(basename $@).o $<
 
 #include these make rules
-DEPFILES=$(patsubst %.cpp, build/deps/%.d, $(filter-out unused/%, $(filter-out lib/%, $(wildcard **/*.cpp))))
+DEPFILES=$(patsubst %, build/deps/%.d, $(filter-out unused/%, $(filter-out lib/%, $(wildcard **/*.cpp **/*.h))))
+
 -include $(DEPFILES)

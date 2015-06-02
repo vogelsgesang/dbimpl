@@ -18,35 +18,23 @@ class BTree {
 
   private:
     struct Node {
-      uint64_t upper; //upper page of right-most child
       uint64_t count; //number of entries
-      std::pair<K, uint64_t> keyChildPIDPairs[1];
+      uint64_t leafMarker; //set to 0 for all inner nodes
+      uint64_t next; //for inner nodes: upper page of right-most child; for leafs: PID of next page
+      std::pair<K, uint64_t> keyValuePairs[1];
 
       inline bool isFull();
       inline bool isLeaf();
       inline K getMaxKey();
       uint64_t findKeyPos(const K key);
-      uint64_t split(uint64_t curPID, BufferFrame* newFrame, BufferFrame* parent, K key);
-      void insertKey(K key, uint64_t leftChildPID, uint64_t rightChildPID);
-      Node() : count(0) {}
-    };
-
-    struct Leaf {
-      uint64_t isLeaf; //mark as Leaf
-      uint64_t next; //next leaf node
-      uint64_t count; //number of entries
-      std::pair<K, uint64_t> keyTIDPairs[1];
-
-      inline uint64_t findKeyPos(const K key);
-      inline bool isFull();
-      inline K getMaxKey();
       bool insertKey(K key, uint64_t tid);
+      void insertInnerKey(K key, uint64_t leftChildPID, uint64_t rightChildPID);
       bool deleteKey(K key);
-      BufferFrame* split(uint64_t curPID, BufferFrame* newFrame, BufferFrame* parent);
-      Leaf()
-        : isLeaf(std::numeric_limits<uint64_t>::max())
-        , next(std::numeric_limits<uint64_t>::max())
-        , count(0) {};
+      K split(uint64_t ownPID, BufferFrame* newFrame, BufferFrame* parent); //returns the used split key
+      Node(bool isLeaf)
+        : count(0)
+        , leafMarker(isLeaf)
+        , next(std::numeric_limits<uint64_t>::max()) {}
     };
 
     inline BufferFrame* createNewRoot();
@@ -67,9 +55,13 @@ class BTree {
 
     inline uint64_t size(){ return elements;}
 
+    void exportAsDot(std::ostream& out);
+
     static Comp smaller;
     static bool isEqual(K key1, K key2);
 };
+template<typename K, typename Comp>
+Comp BTree<K, Comp>::smaller;
 }
 
 #include "bTree.inl.cpp"
