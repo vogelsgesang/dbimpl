@@ -14,7 +14,6 @@ private:
   uint64_t tid;
   unsigned limit;
 
-  std::vector<Register*> output;
   std::vector<Register> registers;
 public:
   TableScanOperator(Relation rel) :
@@ -40,6 +39,8 @@ public:
 
   //returns the values of the current tuple.
   std::vector<Register*> getOutput() {
+    std::vector<Register*> output;
+    output.reserve(tid*relation.getNumAttributes());
     for(uint64_t i = 0; i < tid*relation.getNumAttributes(); i++){
       output.push_back(&registers[i]);
 

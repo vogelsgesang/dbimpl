@@ -24,6 +24,9 @@ public:
     stringValue(strValue)
   {};
 
+  uint8_t getState() const {
+    return state;
+  }
   int getInteger() const{
     return intValue;
   }
@@ -84,6 +87,21 @@ private:
   std::string stringValue; // state = 1
 
 };
+
+
+std::ostream& operator<<(std::ostream& out, const Register& reg){
+  if(reg.getState() == 0) {
+    out << "Integer " << reg.getInteger() << std::endl;
+  }
+  if(reg.getState() == 1){
+    out << "String " << reg.getString() << std::endl;
+  }
+  else{
+    out << "Undefined" << std::endl;
+  }
+  return out;
+}
+
 
 }
 
