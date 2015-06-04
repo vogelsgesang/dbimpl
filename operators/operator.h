@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "operators/register.h"
+#include <schema/relationSchema.h>
 
 namespace dbImpl {
 
