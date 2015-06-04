@@ -6,12 +6,7 @@
 #include <stdint.h>
 
 namespace dbImpl {
-/*
- * can be used to store and retrieve values of ints/strings
- through methods like int getInteger() or void setString(const string& s).
- It also needs to be able to compare Register objects (operator< and operator==) and
- compute a hash value (e.g. for Hash Join operators).
- */
+
 class Register {
 public:
 
