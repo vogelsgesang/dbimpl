@@ -146,7 +146,7 @@ void test(uint64_t n) {
    ASSERT_EQ(0, bTree.size());
 }
 TEST(BTreeTest, Uint64_t) {
-  uint64_t n = 1000*1000ul;
+  uint64_t n = 1000ul;
   test<uint64_t, MyCustomUInt64Cmp>(n);
 }
 TEST(BTreeTest, 20CharsString) {
