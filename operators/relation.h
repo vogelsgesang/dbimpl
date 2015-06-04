@@ -11,13 +11,13 @@ class Relation {
 
 public:
   Relation() :
-      numColumns(0),
+      numAttributes(0),
       numTuples(0)
 {}
   ;
 
   std::vector<Register>& get(unsigned index) {
-    if (numTuples < index) {
+    if (numTuples <= index) {
       throw "Tuple does not exist";
     }
     return tuples[index];
@@ -35,11 +35,14 @@ public:
     }
     Attribute newA(name,type);
     attributes.push_back(newA);
-    numColumns++;
+    numAttributes++;
 
   }
   unsigned getNumTuples(){
     return numTuples;
+  }
+  unsigned getNumAttributes(){
+    return numAttributes;
   }
 
 private:
@@ -55,7 +58,7 @@ private:
 
   std::vector<Attribute> attributes;
   std::vector<std::vector<Register>> tuples;
-  unsigned numColumns;
+  unsigned numAttributes;
   unsigned numTuples;
 
 };

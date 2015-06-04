@@ -8,7 +8,10 @@
 namespace dbImpl {
 
 class Operator {
+protected:
+  ~Operator(){};
 public:
+
 
   //Open the operator
   virtual void open() = 0;
@@ -22,9 +25,11 @@ public:
   //Close the operator
   virtual void close() = 0;
 
-  virtual ~Operator();
+
 };
+
+
 
 }
 
-#endif //OPERTOR_H
+#endif //OPERATOR_H
