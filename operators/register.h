@@ -91,13 +91,12 @@ private:
 
 std::ostream& operator<<(std::ostream& out, const Register& reg){
   if(reg.getState() == 0) {
-    out << "Integer " << reg.getInteger() << std::endl;
-  }
-  if(reg.getState() == 1){
-    out << "String " << reg.getString() << std::endl;
+    out << reg.getInteger();
+  } else if(reg.getState() == 1){
+    out << reg.getString();
   }
   else{
-    out << "Undefined" << std::endl;
+    out << "Undefined";
   }
   return out;
 }

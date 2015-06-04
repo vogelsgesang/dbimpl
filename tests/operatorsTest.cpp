@@ -1,12 +1,17 @@
 #include <gtest/gtest.h>
 #include <vector>
+#include <iostream>
+#include <sstream>
 
 #include "operators/register.h"
 #include "operators/relation.h"
 #include "schema/relationSchema.h"
 #include "operators/tableScan.h"
+#include "operators/print.h"
 
 using namespace dbImpl;
+
+Relation getTestRelation();
 
 TEST(Operators, Register) {
   Register s1("hallo");
@@ -27,13 +32,7 @@ TEST(Operators, Register) {
 }
 
 TEST(Operators, Relation) {
-  Relation r;
-  r.addAttribute("Name", TypeTag::Char);
-  r.addAttribute("Age", TypeTag::Integer);
-
-  r.insert( { Register("Alf"), (Register(50)) });
-  r.insert( { Register("Bert"), (Register(20)) });
-  r.insert( { Register("Carl"), (Register(33)) });
+  Relation r = getTestRelation();
 
   EXPECT_EQ(3, r.getNumTuples());
 
@@ -50,13 +49,7 @@ TEST(Operators, Relation) {
 }
 
 TEST(Operators, ScanTable) {
-  Relation r;
-  r.addAttribute("Name", TypeTag::Char);
-  r.addAttribute("Age", TypeTag::Integer);
-
-  r.insert( { Register("Alf"), (Register(50)) });
-  r.insert( { Register("Bert"), (Register(20)) });
-  r.insert( { Register("Carl"), (Register(33)) });
+  Relation r = getTestRelation();
 
   TableScanOperator tScan(r);
   tScan.open();
@@ -78,3 +71,30 @@ TEST(Operators, ScanTable) {
   EXPECT_EQ(33, r2->getInteger());
 }
 
+TEST(Operators, PrintTable) {
+  Relation r = getTestRelation();
+  Operator* tScan = new TableScanOperator(r);
+  std::stringstream ss;
+  PrintOperator tPrint(tScan, ss);
+  tPrint.open();
+  while (tPrint.next())
+    ;
+
+  std::stringstream cmpStream;
+  cmpStream << "Alf" << " " << 50 << std::endl << "Bert" << " " << 20
+      << std::endl << "Carl" << " " << 33 << std::endl;
+  EXPECT_EQ(cmpStream.str(), ss.str());
+}
+
+Relation getTestRelation() {
+  Relation r;
+  r.addAttribute("Name", TypeTag::Char);
+  r.addAttribute("Age", TypeTag::Integer);
+
+  r.insert( { Register("Alf"), (Register(50)) });
+  r.insert( { Register("Bert"), (Register(20)) });
+  r.insert( { Register("Carl"), (Register(33)) });
+  return r;
+
+
+}
