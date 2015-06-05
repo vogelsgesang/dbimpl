@@ -8,6 +8,7 @@
 #include "schema/relationSchema.h"
 #include "operators/tableScan.h"
 #include "operators/print.h"
+#include "operators/projection.h"
 
 using namespace dbImpl;
 
@@ -85,7 +86,25 @@ TEST(Operators, PrintTable) {
       << std::endl << "Carl" << " " << 33 << std::endl;
   EXPECT_EQ(cmpStream.str(), ss.str());
 }
+TEST(Operators, ProjectionOperator) {
+  Relation r = getTestRelation();
+  Operator* tScan = new TableScanOperator(r);
 
+  //Project to Age
+  Operator* tProject = new ProjectionOperator (tScan, {1});
+  std::stringstream ss;
+  PrintOperator tPrint(tProject, ss);
+  tPrint.open();
+    while (tPrint.next())
+      ;
+
+  std::stringstream cmpStream;
+  cmpStream << 50 << std::endl << 20
+        << std::endl << 33 << std::endl;
+
+  EXPECT_EQ(cmpStream.str(), ss.str());
+
+}
 Relation getTestRelation() {
   Relation r;
   r.addAttribute("Name", TypeTag::Char);

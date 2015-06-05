@@ -28,7 +28,7 @@ public:
   //Reads the next tuple (if any)
   bool next() {
     if (tid >= limit) {
-r      return false;
+      return false;
     }
     std::vector<Register>& tuple = relation.get(tid);
     for (auto& cell : tuple) {
@@ -41,7 +41,7 @@ r      return false;
 
   //returns the values of the current tuple.
   std::vector<Register*> getOutput() {
-    for(; i < tid*relation.getNumAttributes(); curPosInOutput++){
+    for(; curPosInOutput < tid*relation.getNumAttributes(); curPosInOutput++){
       output.push_back(&registers[curPosInOutput]);
 
     }
@@ -50,6 +50,7 @@ r      return false;
 
   void open() {
     tid = 0;
+    curPosInOutput = 0;
     limit = relation.getNumTuples();
     registers.clear();
     registers.reserve(limit * relation.getNumAttributes());
