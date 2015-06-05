@@ -15,7 +15,7 @@ private:
   Operator* input;
   std::vector<Register*> output;
   std::vector<unsigned> regIDs;
-  uint64_t curRegID;
+
 
 public:
   ProjectionOperator(Operator* input, std::vector<unsigned> regIDs) :
@@ -28,13 +28,12 @@ public:
   //Reads the next tuple (if any)
   bool next() {
     if (input->next()) {
-      std::vector<dbImpl::Register*> registers = input->getOutput();
+      std::vector<dbImpl::Register*> tuple = input->getOutput();
+      output.clear();
       for (unsigned i : regIDs) {
-        curRegID += i;
-        output.push_back(registers[curRegID]);
+        output.push_back(tuple[i]);
 
       }
-      curRegID = registers.size();
       return true;
 
     }
@@ -50,9 +49,8 @@ public:
 
   void open() {
     input->open();
-    curRegID = 0;
     output.reserve(regIDs.size());
-    output.clear();
+
 
   }
   void close() {

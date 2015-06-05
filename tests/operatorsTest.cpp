@@ -54,22 +54,25 @@ TEST(Operators, ScanTable) {
 
   TableScanOperator tScan(r);
   tScan.open();
-  while (tScan.next())
-    ;
+  tScan.next();
   Register* r2 = tScan.getOutput()[0];
   EXPECT_EQ("Alf", r2->getString());
   r2 = tScan.getOutput()[1];
   EXPECT_EQ(50, r2->getInteger());
 
-  r2 = tScan.getOutput()[2];
+  tScan.next();
+  r2 = tScan.getOutput()[0];
   EXPECT_EQ("Bert", r2->getString());
-  r2 = tScan.getOutput()[3];
+  r2 = tScan.getOutput()[1];
   EXPECT_EQ(20, r2->getInteger());
 
-  r2 = tScan.getOutput()[4];
+  tScan.next();
+  r2 = tScan.getOutput()[0];
   EXPECT_EQ("Carl", r2->getString());
-  r2 = tScan.getOutput()[5];
+  r2 = tScan.getOutput()[1];
   EXPECT_EQ(33, r2->getInteger());
+
+  ASSERT_FALSE(tScan.next());
 }
 
 TEST(Operators, PrintTable) {
@@ -114,5 +117,4 @@ Relation getTestRelation() {
   r.insert( { Register("Bert"), (Register(20)) });
   r.insert( { Register("Carl"), (Register(33)) });
   return r;
-
 }

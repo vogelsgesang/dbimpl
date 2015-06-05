@@ -11,11 +11,11 @@ class PrintOperator: public Operator {
 private:
   Operator* input;
   std::ostream& outstream;
-  unsigned curPos;
+
 
 public:
   PrintOperator(Operator* input, std::ostream& outstream) :
-      input(input), outstream(outstream), curPos(0)
+      input(input), outstream(outstream)
 
   {
   }
@@ -25,10 +25,10 @@ public:
   bool next() {
     if (input->next()) {
       std::vector<dbImpl::Register*> registers = input->getOutput();
-      //Start from CurrentPos. We do not want to print the first results again
-      for (; curPos < registers.size(); curPos++) {
-        outstream << *registers[curPos];
-        if (curPos < (registers.size()-1)) {
+
+      for (unsigned i = 0; i < registers.size(); i++) {
+        outstream << *registers[i];
+        if (i < (registers.size()-1)) {
           outstream << " ";
         }
       }
@@ -41,7 +41,6 @@ public:
   }
   std::vector<Register*> getOutput();
   void open() {
-    curPos = 0;
     input->open();
 
   }
