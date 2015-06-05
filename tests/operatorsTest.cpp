@@ -96,5 +96,4 @@ Relation getTestRelation() {
   r.insert( { Register("Carl"), (Register(33)) });
   return r;
 
-
 }

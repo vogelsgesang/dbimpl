@@ -13,8 +13,10 @@ private:
 
   uint64_t tid;
   unsigned limit;
+  uint64_t curPosInOutput; //to prevent unnecessary write operations
 
   std::vector<Register> registers;
+  std::vector<Register*> output;
 public:
   TableScanOperator(Relation rel) :
       relation(rel)
@@ -26,7 +28,7 @@ public:
   //Reads the next tuple (if any)
   bool next() {
     if (tid >= limit) {
-      return false;
+r      return false;
     }
     std::vector<Register>& tuple = relation.get(tid);
     for (auto& cell : tuple) {
@@ -39,10 +41,8 @@ public:
 
   //returns the values of the current tuple.
   std::vector<Register*> getOutput() {
-    std::vector<Register*> output;
-    output.reserve(tid*relation.getNumAttributes());
-    for(uint64_t i = 0; i < tid*relation.getNumAttributes(); i++){
-      output.push_back(&registers[i]);
+    for(; i < tid*relation.getNumAttributes(); curPosInOutput++){
+      output.push_back(&registers[curPosInOutput]);
 
     }
     return output;
@@ -53,6 +53,7 @@ public:
     limit = relation.getNumTuples();
     registers.clear();
     registers.reserve(limit * relation.getNumAttributes());
+    output.reserve(limit * relation.getNumAttributes());
   }
   void close(){
   }
