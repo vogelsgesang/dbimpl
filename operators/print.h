@@ -5,6 +5,7 @@
 #include <vector>
 #include "operators/operator.h"
 #include "operators/relation.h"
+#include "operators/register.h"
 
 namespace dbImpl {
 class PrintOperator: public Operator {
@@ -38,7 +39,10 @@ public:
     return false;
 
   }
-  std::vector<Register*> getOutput();
+  std::vector<Register*> getOutput(){
+    return input->getOutput();
+  }
+
   void open() {
     input->open();
 

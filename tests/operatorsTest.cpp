@@ -7,9 +7,10 @@
 #include "operators/relation.h"
 #include "schema/relationSchema.h"
 #include "operators/tableScan.h"
-#include "operators/print.h"
 #include "operators/projection.h"
 #include "operators/selection.h"
+#include "operators/hashJoin.h"
+#include "operators/print.h"
 
 using namespace dbImpl;
 
@@ -103,13 +104,13 @@ TEST(Operators, ProjectionOperator) {
   tPrint.open();
   while (tPrint.next())
     ;
-
   std::stringstream cmpStream;
   cmpStream << 50 << std::endl << 20 << std::endl << 33 << std::endl;
 
   EXPECT_EQ(cmpStream.str(), ss.str());
 
 }
+
 
 TEST(Operators, SelectionOperator) {
   Relation r = getTestRelation2();
@@ -129,6 +130,26 @@ TEST(Operators, SelectionOperator) {
   EXPECT_EQ(cmpStream.str(), ss.str());
 
 }
+
+TEST(Operators, HashJoinOperator) {
+  Relation r = getTestRelation();
+  Operator* tScan = new TableScanOperator(r);
+  Operator* tScan2 = new TableScanOperator(r);
+
+  Operator* tHash = new HashJoinOperator(tScan, tScan2, 1, 1);
+  std::stringstream ss;
+  PrintOperator tPrint(tHash, ss);
+  tPrint.open();
+  while (tPrint.next())    ;
+
+  std::stringstream cmpStream;
+  cmpStream << "Alf" << " " << 50 << std::endl;
+  cmpStream << "Bert" << " " << 20 << std::endl;
+  cmpStream << "Carl" << " " << 33 << std::endl;
+
+  EXPECT_EQ(cmpStream.str(), ss.str());
+}
+
 
 Relation getTestRelation() {
   Relation r;

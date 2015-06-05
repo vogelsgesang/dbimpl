@@ -46,7 +46,6 @@ public:
     output.reserve(relation.getNumAttributes());
     for(unsigned i = 0; i < registers.size(); i++){
       output.push_back(&registers[i]);
-
     }
     return output;
   }

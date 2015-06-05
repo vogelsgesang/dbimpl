@@ -102,6 +102,19 @@ std::ostream& operator<<(std::ostream& out, const Register& reg){
 }
 
 
+
 }
+namespace std {
+
+  template <>
+  struct hash<dbImpl::Register>
+  {
+    std::size_t operator()(const dbImpl::Register& reg) const
+    {
+      return reg.hash();
+    }
+  };
+}
+
 
 #endif //REGISTER_H
