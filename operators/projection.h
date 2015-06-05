@@ -4,18 +4,18 @@
 #include <vector>
 #include "operators/operator.h"
 
+
+namespace dbImpl {
+
 /*
  * The Projection operator is initialized with an input operator and a
  list of register IDs (indexes into the register vector) it should project to
  */
-
-namespace dbImpl {
 class ProjectionOperator: public Operator {
 private:
   Operator* input;
   std::vector<Register*> output;
   std::vector<unsigned> regIDs;
-
 
 public:
   ProjectionOperator(Operator* input, std::vector<unsigned> regIDs) :
@@ -50,7 +50,6 @@ public:
   void open() {
     input->open();
     output.reserve(regIDs.size());
-
 
   }
   void close() {

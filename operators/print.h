@@ -21,7 +21,6 @@ public:
   }
   ;
 
-//pos merken?
   bool next() {
     if (input->next()) {
       std::vector<dbImpl::Register*> registers = input->getOutput();

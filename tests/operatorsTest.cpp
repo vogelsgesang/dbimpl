@@ -9,10 +9,12 @@
 #include "operators/tableScan.h"
 #include "operators/print.h"
 #include "operators/projection.h"
+#include "operators/selection.h"
 
 using namespace dbImpl;
 
 Relation getTestRelation();
+Relation getTestRelation2();
 
 TEST(Operators, Register) {
   Register s1("hallo");
@@ -85,8 +87,9 @@ TEST(Operators, PrintTable) {
     ;
 
   std::stringstream cmpStream;
-  cmpStream << "Alf" << " " << 50 << std::endl << "Bert" << " " << 20
-      << std::endl << "Carl" << " " << 33 << std::endl;
+  cmpStream << "Alf" << " " << 50 << std::endl;
+  cmpStream << "Bert" << " " << 20 << std::endl;
+  cmpStream << "Carl" << " " << 33 << std::endl;
   EXPECT_EQ(cmpStream.str(), ss.str());
 }
 TEST(Operators, ProjectionOperator) {
@@ -94,20 +97,39 @@ TEST(Operators, ProjectionOperator) {
   Operator* tScan = new TableScanOperator(r);
 
   //Project to Age
-  Operator* tProject = new ProjectionOperator (tScan, {1});
+  Operator* tProject = new ProjectionOperator(tScan, { 1 });
   std::stringstream ss;
   PrintOperator tPrint(tProject, ss);
   tPrint.open();
-    while (tPrint.next())
-      ;
+  while (tPrint.next())
+    ;
 
   std::stringstream cmpStream;
-  cmpStream << 50 << std::endl << 20
-        << std::endl << 33 << std::endl;
+  cmpStream << 50 << std::endl << 20 << std::endl << 33 << std::endl;
 
   EXPECT_EQ(cmpStream.str(), ss.str());
 
 }
+
+TEST(Operators, SelectionOperator) {
+  Relation r = getTestRelation2();
+  Operator* tScan = new TableScanOperator(r);
+
+  //Select Tuples where age = 20
+  Operator* tSelect = new SelectionOperator(tScan, 1, Register(20));
+  std::stringstream ss;
+  PrintOperator tPrint(tSelect, ss);
+  tPrint.open();
+  while (tPrint.next())
+    ;
+  std::stringstream cmpStream;
+  cmpStream << "Bert" << " " << 20 << std::endl;
+  cmpStream << "Berts Twin" << " " << 20 << std::endl;
+
+  EXPECT_EQ(cmpStream.str(), ss.str());
+
+}
+
 Relation getTestRelation() {
   Relation r;
   r.addAttribute("Name", TypeTag::Char);
@@ -116,5 +138,17 @@ Relation getTestRelation() {
   r.insert( { Register("Alf"), (Register(50)) });
   r.insert( { Register("Bert"), (Register(20)) });
   r.insert( { Register("Carl"), (Register(33)) });
+  return r;
+}
+
+Relation getTestRelation2() {
+  Relation r;
+  r.addAttribute("Name", TypeTag::Char);
+  r.addAttribute("Age", TypeTag::Integer);
+
+  r.insert( { Register("Alf"), (Register(50)) });
+  r.insert( { Register("Bert"), (Register(20)) });
+  r.insert( { Register("Carl"), (Register(33)) });
+  r.insert( { Register("Berts Twin"), (Register(20)) });
   return r;
 }
