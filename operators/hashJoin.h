@@ -10,11 +10,7 @@
 
 namespace dbImpl {
 
-/*
- * The Hash
- Join operator is initialized with two input operators, and two register IDs. One ID is
- from the left side and one is from the right side.
- */
+
 class HashJoinOperator: public Operator {
 private:
   Operator* leftInput;
@@ -23,10 +19,11 @@ private:
   unsigned rightRegID;
   std::vector<Register*> output;
 
-  std::stack<std::vector<Register*>> outputBuffer; //Necessary since there could be more than one equal key
+  std::stack<std::vector<Register*>> outputBuffer; //stores all tuples that are found in one(!) probe run
 
   std::unordered_multimap<Register, std::vector<Register>> hashTable;
 
+  //build the input hashtable out of the leftInput
   void buildInput() {
     while (leftInput->next()) {
       std::vector<dbImpl::Register*> input(leftInput->getOutput());
@@ -38,16 +35,27 @@ private:
       hashTable.emplace(hashReg, tuple);
     }
   }
+
+  //probe the input with one tuple of the rightInput
+  //store all matching tuples into outputBuffer
+  //return false iff no tuples were found
   bool probeInput() {
-    std::vector<dbImpl::Register*> tuple = rightInput->getOutput();
-    Register probeReg = *tuple[rightRegID];
+    std::vector<dbImpl::Register*> rightTuple = rightInput->getOutput();
+    Register probeReg = *rightTuple[rightRegID];
     auto range = hashTable.equal_range(probeReg);
     for (auto it = range.first; it != range.second; ++it) {
       std::vector<Register*> tmp;
+      //insert values of left table
       for (unsigned i = 0; i < it->second.size(); i++) {
         tmp.emplace_back(&it->second[i]);
       }
+      //insert values of right table
+      for (unsigned i = 0; i < rightTuple.size(); i++) {
+        tmp.emplace_back(rightTuple[i]);
+      }
+
       outputBuffer.emplace(tmp);
+
     }
     return !outputBuffer.empty();
 

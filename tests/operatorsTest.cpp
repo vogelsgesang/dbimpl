@@ -16,6 +16,8 @@ using namespace dbImpl;
 
 Relation getTestRelation();
 Relation getTestRelation2();
+Relation getStudentenRelation();
+Relation getPunkteRelation();
 
 TEST(Operators, Register) {
   Register s1("hallo");
@@ -111,7 +113,6 @@ TEST(Operators, ProjectionOperator) {
 
 }
 
-
 TEST(Operators, SelectionOperator) {
   Relation r = getTestRelation2();
   Operator* tScan = new TableScanOperator(r);
@@ -131,7 +132,7 @@ TEST(Operators, SelectionOperator) {
 
 }
 
-TEST(Operators, HashJoinOperator) {
+TEST(Operators, HashJoinOSelfJoin) {
   Relation r = getTestRelation();
   Operator* tScan = new TableScanOperator(r);
   Operator* tScan2 = new TableScanOperator(r);
@@ -140,16 +141,39 @@ TEST(Operators, HashJoinOperator) {
   std::stringstream ss;
   PrintOperator tPrint(tHash, ss);
   tPrint.open();
-  while (tPrint.next())    ;
+  while (tPrint.next())
+    ;
 
   std::stringstream cmpStream;
-  cmpStream << "Alf" << " " << 50 << std::endl;
-  cmpStream << "Bert" << " " << 20 << std::endl;
-  cmpStream << "Carl" << " " << 33 << std::endl;
+  cmpStream << "Alf" << " " << 50 << " " << "Alf" << " " << 50 << std::endl;
+  cmpStream << "Bert" << " " << 20 << " " << "Bert" << " " << 20 << std::endl;
+  cmpStream << "Carl" << " " << 33 << " " << "Carl" << " " << 33 << std::endl;
 
   EXPECT_EQ(cmpStream.str(), ss.str());
 }
 
+TEST(Operators, JoinStudentenHoeren) {
+  Relation studenten = getStudentenRelation();
+  Relation punkte = getPunkteRelation();
+  Operator* tScan = new TableScanOperator(studenten);
+  Operator* tScan2 = new TableScanOperator(punkte);
+
+  Operator* tHash = new HashJoinOperator(tScan, tScan2, 0, 0);
+  Operator* tProject = new ProjectionOperator(tHash, { 0, 1, 3 });
+  std::stringstream ss;
+  PrintOperator tPrint(tProject, ss);
+  tPrint.open();
+  while (tPrint.next())
+    ;
+
+  std::stringstream cmpStream;
+  cmpStream << 1 << " " << "Alf" << " " << 50 << std::endl;
+  cmpStream << 2 << " " << "Bert" << " " << 90 << std::endl;
+  cmpStream << 3 << " " << "Carl" << " " << 3 << std::endl;
+  cmpStream << 4 << " " << "Dieter" << " " << 90 << std::endl;
+
+  EXPECT_EQ(cmpStream.str(), ss.str());
+}
 
 Relation getTestRelation() {
   Relation r;
@@ -171,5 +195,29 @@ Relation getTestRelation2() {
   r.insert( { Register("Bert"), (Register(20)) });
   r.insert( { Register("Carl"), (Register(33)) });
   r.insert( { Register("Berts Twin"), (Register(20)) });
+  return r;
+}
+
+Relation getStudentenRelation() {
+  Relation r;
+  r.addAttribute("MatrNr", TypeTag::Integer);
+  r.addAttribute("Name", TypeTag::Char);
+
+  r.insert( { Register(1), (Register("Alf")) });
+  r.insert( { Register(2), (Register("Bert")) });
+  r.insert( { Register(3), (Register("Carl")) });
+  r.insert( { Register(4), (Register("Dieter")) });
+  return r;
+}
+
+Relation getPunkteRelation() {
+  Relation r;
+  r.addAttribute("MatrNr", TypeTag::Integer);
+  r.addAttribute("Punkte", TypeTag::Integer);
+
+  r.insert( { Register(1), (Register(50)) });
+  r.insert( { Register(2), (Register(90)) });
+  r.insert( { Register(3), (Register(3)) });
+  r.insert( { Register(4), (Register(90)) });
   return r;
 }

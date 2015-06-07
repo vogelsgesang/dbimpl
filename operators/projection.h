@@ -7,10 +7,7 @@
 
 namespace dbImpl {
 
-/*
- * The Projection operator is initialized with an input operator and a
- list of register IDs (indexes into the register vector) it should project to
- */
+
 class ProjectionOperator: public Operator {
 private:
   Operator* input;
