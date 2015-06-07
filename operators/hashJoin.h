@@ -32,7 +32,7 @@ private:
       for (unsigned i = 0; i < input.size(); i++) {
         tuple.emplace_back(*input[i]);
       }
-      hashTable.emplace(hashReg, tuple);
+      hashTable.emplace(hashReg, std::move(tuple));
     }
   }
 
@@ -54,7 +54,7 @@ private:
         tmp.emplace_back(rightTuple[i]);
       }
 
-      outputBuffer.emplace(tmp);
+      outputBuffer.emplace(std::move(tmp));
 
     }
     return !outputBuffer.empty();
