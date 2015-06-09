@@ -16,6 +16,7 @@ private:
 
 
   std::vector<Register> registers;
+  std::vector<Register*> output;
 
 public:
   TableScanOperator(Relation rel) :
@@ -42,18 +43,18 @@ public:
 
   //returns the values of the current tuple.
   std::vector<Register*> getOutput() {
-    std::vector<Register*> output;
-    output.reserve(relation.getNumAttributes());
-    for(unsigned i = 0; i < registers.size(); i++){
-      output.push_back(&registers[i]);
-    }
     return output;
   }
 
   void open() {
     tid = 0;
     limit = relation.getNumTuples();
-    registers.reserve(relation.getNumAttributes());
+    registers.resize(relation.getNumAttributes());
+    output.reserve(relation.getNumAttributes());
+    for(unsigned i = 0; i < registers.size(); i++){
+      output.push_back(&registers[i]);
+    }
+
   }
   void close(){
   }
