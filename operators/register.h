@@ -2,6 +2,7 @@
 #define _REGISTER_H_
 
 #include <string>
+#include <vector>
 #include <functional>
 #include <stdint.h>
 
@@ -16,30 +17,36 @@ public:
     state(~0)
   {};
   Register(const int intValue):
-    state(0),
-    intValue(intValue)
-  {};
+    state(0)
+  {
+    setInteger(intValue);};
   Register(const std::string strValue):
-    state(1),
-    stringValue(strValue)
-  {};
+    state(1)
+  {
+    setString(strValue);
+};
 
   uint8_t getState() const {
     return state;
   }
   int getInteger() const{
+    int intValue;
+    memcpy(&intValue,value,sizeof(int));
     return intValue;
   }
   void setInteger(const int i){
-    intValue = i;
+    value = new uint8_t[sizeof(int)];
+    memcpy(value, &i, sizeof(int));
     state = 0;
   }
   std::string getString() const{
+    std::string stringValue(reinterpret_cast<char*>(value));
     return stringValue;
   }
 
   void setString(const std::string& s){
-    stringValue = s;
+    value = new uint8_t[s.size()+1];
+    strcpy(reinterpret_cast<char*>(value),s.c_str());
     state = 1;
   }
 
@@ -48,10 +55,10 @@ public:
       return false;
     }
     if (state == 0) {
-      return intValue < r.getInteger();
+      return getInteger() < r.getInteger();
     }
     if (state == 1) {
-      return stringValue < r.getString();
+      return getString() < r.getString();
     }
     //undefined
     return false;
@@ -61,10 +68,10 @@ public:
       return false;
     }
     if (state == 0) {
-      return intValue == r.getInteger();
+      return getInteger() == r.getInteger();
     }
     if (state == 1) {
-      return stringValue == r.getString();
+      return getString() == r.getString();
     }
     //undefined
     return false;
@@ -73,18 +80,17 @@ public:
   std::size_t hash() const {
     if (state == 0) {
       std::hash<int> hash_int;
-      return hash_int(intValue);
+      return hash_int(getInteger());
     }
     if (state == 1) {
       std::hash < std::string > hash_str;
-      return hash_str(stringValue);
+      return hash_str(getString());
     }
     throw "Cannot hash value. State is undefined";
   }
 
 private:
-  int intValue; // state = 0
-  std::string stringValue; // state = 1
+  uint8_t* value;
 
 };
 
