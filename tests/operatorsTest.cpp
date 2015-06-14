@@ -22,19 +22,18 @@ Relation getPunkteRelation();
 TEST(Operators, Register) {
   Register s1("hallo");
   Register s2("welt");
-  ASSERT_FALSE(s1 == s2);
+  EXPECT_NE(s1, s2);
 
   s2.setString("hallo");
   EXPECT_EQ(s1, s2);
   EXPECT_EQ(s1.getString(), "hallo");
-  ASSERT_TRUE(s1 == s2);
+  EXPECT_EQ(s1, s2);
 
   Register i1(5);
   Register i2(10);
-  ASSERT_TRUE(i1 < i2);
   EXPECT_EQ(i1.getInteger(), 5);
   EXPECT_EQ(i2.getInteger(), 10);
-
+  EXPECT_TRUE(i1 < i2);
 }
 
 TEST(Operators, Relation) {
@@ -51,7 +50,6 @@ TEST(Operators, Relation) {
 
   EXPECT_ANY_THROW(r.get(3));
   EXPECT_ANY_THROW(r.addAttribute("Another Attribute", TypeTag::Integer));
-
 }
 
 TEST(Operators, ScanTable) {
@@ -86,8 +84,7 @@ TEST(Operators, PrintTable) {
   std::stringstream ss;
   PrintOperator tPrint(tScan, ss);
   tPrint.open();
-  while (tPrint.next())
-    ;
+  while (tPrint.next()) {}
 
   std::stringstream cmpStream;
   cmpStream << "Alf" << " " << 50 << std::endl;
@@ -95,6 +92,7 @@ TEST(Operators, PrintTable) {
   cmpStream << "Carl" << " " << 33 << std::endl;
   EXPECT_EQ(cmpStream.str(), ss.str());
 }
+
 TEST(Operators, ProjectionOperator) {
   Relation r = getTestRelation();
   Operator* tScan = new TableScanOperator(r);
@@ -110,7 +108,6 @@ TEST(Operators, ProjectionOperator) {
   cmpStream << 50 << std::endl << 20 << std::endl << 33 << std::endl;
 
   EXPECT_EQ(cmpStream.str(), ss.str());
-
 }
 
 TEST(Operators, SelectionOperator) {
@@ -129,7 +126,6 @@ TEST(Operators, SelectionOperator) {
   cmpStream << "Berts Twin" << " " << 20 << std::endl;
 
   EXPECT_EQ(cmpStream.str(), ss.str());
-
 }
 
 TEST(Operators, HashJoinOSelfJoin) {

@@ -3,56 +3,49 @@
 
 #include <stdint.h>
 #include <vector>
+#include <ostream>
 #include "operators/operator.h"
-#include "operators/relation.h"
 #include "operators/register.h"
 
 namespace dbImpl {
-class PrintOperator: public Operator {
-private:
-  Operator* input;
-  std::ostream& outstream;
 
+  class PrintOperator: public Operator {
+    private:
+      Operator* input;
+      std::ostream& outstream;
 
-public:
-  PrintOperator(Operator* input, std::ostream& outstream) :
-      input(input), outstream(outstream)
+    public:
+      PrintOperator(Operator* input, std::ostream& outstream)
+        : input(input), outstream(outstream) {}
 
-  {
-  }
-  ;
+      bool next() {
+        if (input->next()) {
+          std::vector<dbImpl::Register*> registers = input->getOutput();
 
-  bool next() {
-    if (input->next()) {
-      std::vector<dbImpl::Register*> registers = input->getOutput();
-
-      for (unsigned i = 0; i < registers.size(); i++) {
-        outstream << *registers[i];
-        if (i < (registers.size()-1)) {
-          outstream << " ";
+          for (unsigned i = 0; i < registers.size(); i++) {
+            outstream << *registers[i];
+            if (i < (registers.size()-1)) {
+              outstream << " ";
+            }
+          }
+          outstream << std::endl;
+          return true;
         }
+        return false;
       }
-      outstream << std::endl;
 
-      return true;
-    }
-    return false;
+      std::vector<Register*> getOutput(){
+        return input->getOutput();
+      }
 
-  }
-  std::vector<Register*> getOutput(){
-    return input->getOutput();
-  }
+      void open() {
+        input->open();
+      }
 
-  void open() {
-    input->open();
-
-  }
-  void close() {
-    input->close();
-  }
-
-};
-
+      void close() {
+        input->close();
+      }
+  };
 }
 
 #endif //PRINTOPERATOR_H
