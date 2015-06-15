@@ -13,7 +13,7 @@ namespace dbImpl {
       std::vector<unsigned> regIDs;
 
     public:
-      ProjectionOperator(Operator* input, std::vector<unsigned> regIDs)
+      ProjectionOperator(Operator* input, const std::vector<unsigned>& regIDs)
         : input(input), regIDs(regIDs) {}
 
       //Reads the next tuple (if any)
@@ -41,6 +41,7 @@ namespace dbImpl {
 
       void close() {
         input->close();
+        output.clear();
       }
   };
 

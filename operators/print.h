@@ -21,11 +21,10 @@ namespace dbImpl {
       bool next() {
         if (input->next()) {
           std::vector<dbImpl::Register*> registers = input->getOutput();
-
           for (unsigned i = 0; i < registers.size(); i++) {
             outstream << *registers[i];
-            if (i < (registers.size()-1)) {
-              outstream << " ";
+            if (i < registers.size() - 1) {
+              outstream << " | ";
             }
           }
           outstream << std::endl;
