@@ -9,7 +9,7 @@ namespace dbImpl {
 
   class Operator {
     protected:
-      ~Operator(){};
+      virtual ~Operator(){};
     public:
       //Open the operator
       virtual void open() = 0;
