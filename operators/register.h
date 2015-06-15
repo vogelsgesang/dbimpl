@@ -3,112 +3,147 @@
 
 #include <string>
 #include <ostream>
+#include <stdexcept>
 #include <cstdint>
 #include <cstring>
+#include "schema/relationSchema.h"
 
 namespace dbImpl {
 
   class Register {
     public:
-      uint8_t state; //undefined --> state = ~0
+      Register() {}
 
-      Register()
-        : state(~0) {};
-
-      Register(const int intValue)
-        : state(0) {
+      Register(const int intValue) {
           setInteger(intValue);
       };
 
-      Register(const std::string strValue)
-        : state(1) {
+      Register(const std::string& strValue) {
         setString(strValue);
       };
 
-      uint8_t getState() const {
-        return state;
+      Register(const Register& reg) {
+        type = reg.type;
+        switch(type) {
+          case TypeTag::Integer:
+            value.integer = reg.value.integer;
+          case TypeTag::Char:
+            value.str = reg.value.str;
+          default:
+            throw std::runtime_error("Unknown data type in register");
+        }
       }
 
-      int getInteger() const{
-        int intValue;
-        std::memcpy(&intValue,value,sizeof(int));
-        return intValue;
+      Register& operator=(const Register& rhs) {
+        type = rhs.type;
+        switch(type) {
+          case TypeTag::Integer:
+            value.integer = rhs.value.integer;
+          case TypeTag::Char:
+            value.str = rhs.value.str;
+          default:
+            throw std::runtime_error("Unknown data type in register");
+        }
+        return *this;
+      }
+
+      TypeTag getType() const {
+        return type;
+      }
+
+      int getInteger() const {
+        if(type != TypeTag::Integer) {
+          throw std::runtime_error("type mismatch while reading integer from register");
+        }
+        return value.integer;
       }
 
       void setInteger(const int i){
-        value = new uint8_t[sizeof(int)];
-        std::memcpy(value, &i, sizeof(int));
-        state = 0;
+        type = TypeTag::Integer;
+        value.integer = i;
       }
 
       std::string getString() const{
-        std::string stringValue(reinterpret_cast<char*>(value));
-        return stringValue;
+        if(type != TypeTag::Char) {
+          throw std::runtime_error("type mismatch while reading string from register");
+        }
+        return value.str;
       }
 
       void setString(const std::string& s){
-        value = new uint8_t[s.size()+1];
-        strcpy(reinterpret_cast<char*>(value),s.c_str());
-        state = 1;
+        type = TypeTag::Char;
+        value.str = s;
       }
 
       bool operator<(Register r) const {
-        if (state != r.state) {
-          return false;
+        if (type != r.type) {
+          return type < r.type;
         }
-        if (state == 0) {
-          return getInteger() < r.getInteger();
-        }
-        if (state == 1) {
-          return getString() < r.getString();
-        }
-        //undefined
-        return false;
-      }
-
-      bool operator==(Register r) const {
-        if (state != r.state) {
-          return false;
-        }
-        if (state == 0) {
-          return getInteger() == r.getInteger();
-        }
-        if (state == 1) {
-          return getString() == r.getString();
+        switch(type) {
+          case TypeTag::Integer:
+            return value.integer < r.value.integer;
+          case TypeTag::Char:
+            return value.str < r.value.str;
+          default:
+            throw std::runtime_error("Unknown data type in register");
         }
         //undefined
         return false;
       }
 
-      bool operator!=(Register r) const {
+      bool operator==(const Register& r) const {
+        if (type != r.type) {
+          return false;
+        }
+        switch(type) {
+          case TypeTag::Integer:
+            return value.integer == r.value.integer;
+          case TypeTag::Char:
+            return value.str == r.value.str;
+          default:
+            throw std::runtime_error("Unknown data type in register");
+        }
+      }
+
+      bool operator!=(const Register& r) const {
         return !(*this == r);
       }
 
       std::size_t hash() const {
-        if (state == 0) {
-          std::hash<int> hash_int;
-          return hash_int(getInteger());
+        switch(type) {
+          case TypeTag::Integer:
+            std::hash<int> hash_int;
+            return hash_int(value.integer);
+          case TypeTag::Char:
+            std::hash < std::string > hash_str;
+            return hash_str(value.str);
+          default:
+            throw std::runtime_error("Unknown data type in register");
         }
-        if (state == 1) {
-          std::hash < std::string > hash_str;
-          return hash_str(getString());
-        }
-        throw "Cannot hash value. State is undefined";
       }
 
     private:
-      uint8_t* value;
+      union ValueHolder {
+        int integer;
+        std::string str;
+        ValueHolder() {};
+        ~ValueHolder() {};
+      } value;
+
+      TypeTag type;
   };
 
-
   std::ostream& operator<<(std::ostream& out, const Register& reg){
-    if(reg.getState() == 0) {
-      out << reg.getInteger();
-    } else if(reg.getState() == 1){
-      out << reg.getString();
-    }
-    else{
-      out << "Undefined";
+    switch(reg.getType()) {
+      case TypeTag::Integer:
+        out << reg.getInteger();
+        break;
+      case TypeTag::Char:
+        out << reg.getString();
+        break;
+      default:
+        out << "Undefined";
+        break;
     }
     return out;
   }
