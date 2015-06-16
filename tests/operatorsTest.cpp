@@ -87,9 +87,9 @@ TEST(Operators, PrintTable) {
   while (tPrint.next()) {}
 
   std::stringstream cmpStream;
-  cmpStream << "Alf" << " " << 50 << std::endl;
-  cmpStream << "Bert" << " " << 20 << std::endl;
-  cmpStream << "Carl" << " " << 33 << std::endl;
+  cmpStream << "Alf" << " | " << 50 << std::endl;
+  cmpStream << "Bert" << " | " << 20 << std::endl;
+  cmpStream << "Carl" << " | " << 33 << std::endl;
   EXPECT_EQ(cmpStream.str(), ss.str());
 }
 
@@ -122,8 +122,8 @@ TEST(Operators, SelectionOperator) {
   while (tPrint.next())
     ;
   std::stringstream cmpStream;
-  cmpStream << "Bert" << " " << 20 << std::endl;
-  cmpStream << "Berts Twin" << " " << 20 << std::endl;
+  cmpStream << "Bert" << " | " << 20 << std::endl;
+  cmpStream << "Berts Twin" << " | " << 20 << std::endl;
 
   EXPECT_EQ(cmpStream.str(), ss.str());
 }
@@ -141,9 +141,9 @@ TEST(Operators, HashJoinOSelfJoin) {
     ;
 
   std::stringstream cmpStream;
-  cmpStream << "Alf" << " " << 50 << " " << "Alf" << " " << 50 << std::endl;
-  cmpStream << "Bert" << " " << 20 << " " << "Bert" << " " << 20 << std::endl;
-  cmpStream << "Carl" << " " << 33 << " " << "Carl" << " " << 33 << std::endl;
+  cmpStream << "Alf" << " | " << 50 << " | " << "Alf" << " | " << 50 << std::endl;
+  cmpStream << "Bert" << " | " << 20 << " | " << "Bert" << " | " << 20 << std::endl;
+  cmpStream << "Carl" << " | " << 33 << " | " << "Carl" << " | " << 33 << std::endl;
 
   EXPECT_EQ(cmpStream.str(), ss.str());
 }
@@ -163,10 +163,10 @@ TEST(Operators, JoinStudentenHoeren) {
     ;
 
   std::stringstream cmpStream;
-  cmpStream << 1 << " " << "Alf" << " " << 50 << std::endl;
-  cmpStream << 2 << " " << "Bert" << " " << 90 << std::endl;
-  cmpStream << 3 << " " << "Carl" << " " << 3 << std::endl;
-  cmpStream << 4 << " " << "Dieter" << " " << 90 << std::endl;
+  cmpStream << 1 << " | " << "Alf" << " | " << 50 << std::endl;
+  cmpStream << 2 << " | " << "Bert" << " | " << 90 << std::endl;
+  cmpStream << 3 << " | " << "Carl" << " | " << 3 << std::endl;
+  cmpStream << 4 << " | " << "Dieter" << " | " << 90 << std::endl;
 
   EXPECT_EQ(cmpStream.str(), ss.str());
 }
