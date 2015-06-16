@@ -12,35 +12,44 @@ namespace dbImpl {
 
   class Register {
     public:
-      Register() {}
+      Register() : type(TypeTag::Invalid) {}
 
-      Register(const int intValue) {
-          setInteger(intValue);
+      Register(const int intValue)
+        : Register() {
+        setInteger(intValue);
       };
 
-      Register(const std::string& strValue) {
+      Register(const std::string& strValue)
+        : Register() {
         setString(strValue);
       };
 
-      Register(const Register& reg) {
-        type = reg.type;
-        switch(type) {
+      Register(const Register& rhs)
+        : Register() {
+        switch(rhs.type) {
           case TypeTag::Integer:
-            value.integer = reg.value.integer;
+            setInteger(rhs.value.integer);
+            break;
           case TypeTag::Char:
-            value.str = reg.value.str;
+            setString(rhs.value.str);
+            break;
           default:
             throw std::runtime_error("Unknown data type in register");
         }
       }
 
+      ~Register() {
+        deconstructValue();
+      }
+
       Register& operator=(const Register& rhs) {
-        type = rhs.type;
-        switch(type) {
+        switch(rhs.type) {
           case TypeTag::Integer:
-            value.integer = rhs.value.integer;
+            setInteger(rhs.value.integer);
+            break;
           case TypeTag::Char:
-            value.str = rhs.value.str;
+            setString(rhs.value.str);
+            break;
           default:
             throw std::runtime_error("Unknown data type in register");
         }
@@ -59,7 +68,10 @@ namespace dbImpl {
       }
 
       void setInteger(const int i){
-        type = TypeTag::Integer;
+        if(type != TypeTag::Integer) {
+          deconstructValue();
+          type = TypeTag::Integer;
+        }
         value.integer = i;
       }
 
@@ -71,8 +83,11 @@ namespace dbImpl {
       }
 
       void setString(const std::string& s){
-        type = TypeTag::Char;
-        value.str = s;
+        if(type != TypeTag::Char) {
+          deconstructValue();
+          type = TypeTag::Char;
+        }
+        new(&value.str) std::string(s);
       }
 
       bool operator<(Register r) const {
@@ -131,6 +146,20 @@ namespace dbImpl {
       } value;
 
       TypeTag type;
+
+      void deconstructValue() {
+        switch(type) {
+          case TypeTag::Integer:
+            break;
+          case TypeTag::Char:
+            value.str.~basic_string(); //explicitely call the desctructor
+            break;
+          case TypeTag::Invalid:
+            break;
+          default:
+            throw std::runtime_error("Unknown data type in register");
+        }
+      }
   };
 
   std::ostream& operator<<(std::ostream& out, const Register& reg){

@@ -13,8 +13,9 @@ char serializeType(const TypeTag type) {
       return 'i';
     case TypeTag::Char:
       return 'c';
+    default:
+      throw std::runtime_error("could not serialize attribute type");
   }
-  throw std::runtime_error("could not serialize attribute type");
 }
 
 TypeTag loadType(char type) {
@@ -162,6 +163,8 @@ std::ostream& operator<< (std::ostream& out, const TypeTag& type) {
       out << "INTEGER";
     case TypeTag::Char:
       out << "CHAR";
+    case TypeTag::Invalid:
+      throw std::runtime_error("<INVALID TYPE>");
   }
   return out;
 }

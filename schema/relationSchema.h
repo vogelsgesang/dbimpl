@@ -12,7 +12,7 @@ namespace dbImpl {
   /**
    * Types
    */
-  enum class TypeTag : char {Integer, Char};
+  enum class TypeTag : char {Integer, Char, Invalid};
 
   struct AttributeDescriptor {
     std::string name;
