@@ -9,7 +9,7 @@ namespace dbImpl {
   class ProjectionOperator: public Operator {
     private:
       Operator* input;
-      std::vector<Register*> output;
+      std::vector<const Register*> output;
       std::vector<unsigned> regIDs;
 
     public:
@@ -19,7 +19,7 @@ namespace dbImpl {
       //Reads the next tuple (if any)
       bool next() {
         if (input->next()) {
-          std::vector<dbImpl::Register*> tuple = input->getOutput();
+          std::vector<const Register*> tuple = input->getOutput();
           output.clear();
           for (unsigned i : regIDs) {
             output.push_back(tuple[i]);
@@ -30,7 +30,7 @@ namespace dbImpl {
       }
 
       //returns the values of the current tuple.
-      std::vector<Register*> getOutput() {
+      std::vector<const Register*> getOutput() {
         return output;
       }
 

@@ -1,7 +1,7 @@
 #ifndef _PRINTOPERATOR_H_
 #define _PRINTOPERATOR_H_
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <ostream>
 #include "operators/operator.h"
@@ -20,7 +20,7 @@ namespace dbImpl {
 
       bool next() {
         if (input->next()) {
-          std::vector<dbImpl::Register*> registers = input->getOutput();
+          std::vector<const Register*> registers = input->getOutput();
           for (unsigned i = 0; i < registers.size(); i++) {
             outstream << *registers[i];
             if (i < registers.size() - 1) {
@@ -33,7 +33,7 @@ namespace dbImpl {
         return false;
       }
 
-      std::vector<Register*> getOutput(){
+      std::vector<const Register*> getOutput(){
         return input->getOutput();
       }
 

@@ -18,7 +18,7 @@ namespace dbImpl {
       virtual bool next() = 0;
 
       //Get all produced values
-      virtual std::vector<Register*> getOutput() = 0;
+      virtual std::vector<const Register*> getOutput() = 0;
 
       //Close the operator
       virtual void close() = 0;

@@ -16,17 +16,17 @@ namespace dbImpl {
       Operator* rightInput;
       unsigned leftRegID;
       unsigned rightRegID;
-      std::vector<Register*> output;
+      std::vector<const Register*> output;
 
-      std::stack<std::vector<Register*>> outputBuffer; //stores all tuples that are found in one(!) probe run
+      std::stack<std::vector<const Register*>> outputBuffer; //stores all tuples that are found in one(!) probe run
 
       std::unordered_multimap<Register, std::vector<Register>> hashTable;
 
       //build the input hashtable out of the leftInput
       void buildInput() {
         while (leftInput->next()) {
-          std::vector<dbImpl::Register*> input(leftInput->getOutput());
-          Register hashReg = *input[leftRegID];
+          std::vector<const Register*> input(leftInput->getOutput());
+          Register hashReg = *input.at(leftRegID);
           std::vector<Register> tuple;
           for (unsigned i = 0; i < input.size(); i++) {
             tuple.emplace_back(*input[i]);
@@ -39,11 +39,11 @@ namespace dbImpl {
       //store all matching tuples into outputBuffer
       //return false iff no tuples were found
       bool probeInput() {
-        std::vector<dbImpl::Register*> rightTuple = rightInput->getOutput();
+        std::vector<const Register*> rightTuple = rightInput->getOutput();
         Register probeReg = *rightTuple[rightRegID];
         auto range = hashTable.equal_range(probeReg);
         for (auto it = range.first; it != range.second; ++it) {
-          std::vector<Register*> tmp;
+          std::vector<const Register*> tmp;
           //insert values of left table
           for (unsigned i = 0; i < it->second.size(); i++) {
             tmp.emplace_back(&it->second[i]);
@@ -54,10 +54,8 @@ namespace dbImpl {
           }
 
           outputBuffer.emplace(std::move(tmp));
-
         }
         return !outputBuffer.empty();
-
       }
 
     public:
@@ -83,18 +81,18 @@ namespace dbImpl {
         return false;
       }
 
-      std::vector<Register*> getOutput() {
+      std::vector<const Register*> getOutput() {
         return output;
       }
 
       void open() {
         leftInput->open();
         buildInput();
+        leftInput->close();
         rightInput->open();
       }
 
       void close() {
-        leftInput->close();
         rightInput->close();
       }
   };

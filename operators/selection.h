@@ -12,7 +12,7 @@ namespace dbImpl {
   class SelectionOperator: public Operator {
     private:
       Operator* input;
-      std::vector<Register*> output;
+      std::vector<const Register*> output;
       unsigned attID;
       Register c;
 
@@ -22,7 +22,7 @@ namespace dbImpl {
 
       bool next() {
         while (input->next()) {
-          std::vector<dbImpl::Register*> tuple = input->getOutput();
+          std::vector<const Register*> tuple = input->getOutput();
           if (*tuple[attID] == c) {
             output = tuple;
             return true;
@@ -32,7 +32,7 @@ namespace dbImpl {
       }
 
       //returns the values of the current tuple.
-      std::vector<Register*> getOutput() {
+      std::vector<const Register*> getOutput() {
         return output;
       }
 

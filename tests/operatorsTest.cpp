@@ -58,7 +58,7 @@ TEST(Operators, ScanTable) {
   TableScanOperator tScan(r);
   tScan.open();
   tScan.next();
-  Register* r2 = tScan.getOutput()[0];
+  const Register* r2 = tScan.getOutput()[0];
   EXPECT_EQ("Alf", r2->getString());
   r2 = tScan.getOutput()[1];
   EXPECT_EQ(50, r2->getInteger());

@@ -16,7 +16,7 @@ namespace dbImpl {
       unsigned limit;
 
       std::vector<Register> registers;
-      std::vector<Register*> output;
+      std::vector<const Register*> output;
 
     public:
       TableScanOperator(Relation rel) :
@@ -37,7 +37,7 @@ namespace dbImpl {
       }
 
       //returns the values of the current tuple.
-      std::vector<Register*> getOutput() {
+      std::vector<const Register*> getOutput() {
         return output;
       }
 
