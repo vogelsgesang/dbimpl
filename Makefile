@@ -104,7 +104,7 @@ RUNTESTS_OBJS=gtest_main.a $(patsubst %.cpp, %.o, $(shell find tests/ -iname *Te
               sorting/externalSort.o sorting/isSorted.o utils/checkedIO.o \
               logic/sqlBool.o buffer/bufferManager.o buffer/bufferFrame.o \
               slottedPages/spSegment.o schema/relationSchema.o schema/schemaParser.o \
-							schema/schemaSegment.o
+							schema/schemaSegment.o operators/register.o
 bin/runTests$(BIN_SUFFIX): CPPFLAGS+= -isystem $(GTEST_DIR)/include
 #the dependency on the _directory_ containing the test specifications is neccessary in
 #order to handle deleted files correctly

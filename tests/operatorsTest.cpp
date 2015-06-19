@@ -3,10 +3,10 @@
 #include <iostream>
 #include <sstream>
 
-#include "operators/register.h"
+#include "operators/inMemoryScan.h"
+#include "operators/tupleCollector.h"
 #include "operators/relation.h"
 #include "schema/relationSchema.h"
-#include "operators/tableScan.h"
 #include "operators/projection.h"
 #include "operators/selection.h"
 #include "operators/hashJoin.h"
@@ -14,206 +14,165 @@
 
 using namespace dbImpl;
 
-Relation getTestRelation();
-Relation getTestRelation2();
-Relation getStudentenRelation();
-Relation getPunkteRelation();
+typedef std::vector<std::vector<Register>> Table;
 
-TEST(Operators, Register) {
-  Register s1("hallo");
-  Register s2("welt");
-  EXPECT_NE(s1, s2);
+const Table studentsTable{
+  //MatrNr      , Name                    , Age
+  { Register(1) , Register("Alf")         , Register(50) } ,
+  { Register(2) , Register("Bert")        , Register(20) } ,
+  { Register(3) , Register("Bert's twin") , Register(20) } ,
+  { Register(4) , Register("Carl")        , Register(33) } ,
+};
 
-  s2.setString("hallo");
-  EXPECT_EQ(s1, s2);
-  EXPECT_EQ(s1.getString(), "hallo");
-  EXPECT_EQ(s1, s2);
+const Table pointsTable{
+  //MatrNr     , Points
+  { Register(1), Register(50) },
+  { Register(3), Register( 3) },
+  { Register(4), Register(90) }
+};
 
-  Register i1(5);
-  Register i2(10);
-  EXPECT_EQ(i1.getInteger(), 5);
-  EXPECT_EQ(i2.getInteger(), 10);
-  EXPECT_TRUE(i1 < i2);
+TEST(InMemoryScanOperator, scansATable) {
+  InMemoryScanOperator scan(studentsTable);
+  scan.open();
+
+  ASSERT_TRUE(scan.next());
+  EXPECT_EQ(1     , scan.getOutput()[0]->getInteger());
+  EXPECT_EQ("Alf" , scan.getOutput()[1]->getString());
+  EXPECT_EQ(50    , scan.getOutput()[2]->getInteger());
+
+  ASSERT_TRUE(scan.next());
+  EXPECT_EQ(2     , scan.getOutput()[0]->getInteger());
+  EXPECT_EQ("Bert" , scan.getOutput()[1]->getString());
+  EXPECT_EQ(20     , scan.getOutput()[2]->getInteger());
+
+  ASSERT_TRUE(scan.next());
+  EXPECT_EQ(3     , scan.getOutput()[0]->getInteger());
+  EXPECT_EQ("Bert's twin" , scan.getOutput()[1]->getString());
+  EXPECT_EQ(20            , scan.getOutput()[2]->getInteger());
+
+  ASSERT_TRUE(scan.next());
+  EXPECT_EQ(4     , scan.getOutput()[0]->getInteger());
+  EXPECT_EQ("Carl" , scan.getOutput()[1]->getString());
+  EXPECT_EQ(33     , scan.getOutput()[2]->getInteger());
+
+  ASSERT_TRUE(scan.next());
+  EXPECT_EQ(5     , scan.getOutput()[0]->getInteger());
+  EXPECT_EQ("Dieter" , scan.getOutput()[1]->getString());
+  EXPECT_EQ(22       , scan.getOutput()[2]->getInteger());
+
+  ASSERT_FALSE(scan.next());
 }
 
-TEST(Operators, Relation) {
-  Relation r = getTestRelation();
-
-  EXPECT_EQ(3, r.getNumTuples());
-
-  std::vector<Register> t = r.get(0);
-  EXPECT_EQ(Register("Alf"), t[0]);
-  EXPECT_EQ(Register(50), t[1]);
-  t = r.get(1);
-  EXPECT_EQ(Register("Bert"), t[0]);
-  EXPECT_EQ(Register(20), t[1]);
-
-  EXPECT_ANY_THROW(r.get(3));
-  EXPECT_ANY_THROW(r.addAttribute("Another Attribute", TypeTag::Integer));
+TEST(TupleCollector, collectsAllTuples) {
+  InMemoryScanOperator scan(studentsTable);
+  TupleCollector collector(&scan);
+  Table collectedTable = collector.collect();
+  EXPECT_EQ(studentsTable, collectedTable);
 }
 
-TEST(Operators, ScanTable) {
-  Relation r = getTestRelation();
-
-  TableScanOperator tScan(r);
-  tScan.open();
-  tScan.next();
-  const Register* r2 = tScan.getOutput()[0];
-  EXPECT_EQ("Alf", r2->getString());
-  r2 = tScan.getOutput()[1];
-  EXPECT_EQ(50, r2->getInteger());
-
-  tScan.next();
-  r2 = tScan.getOutput()[0];
-  EXPECT_EQ("Bert", r2->getString());
-  r2 = tScan.getOutput()[1];
-  EXPECT_EQ(20, r2->getInteger());
-
-  tScan.next();
-  r2 = tScan.getOutput()[0];
-  EXPECT_EQ("Carl", r2->getString());
-  r2 = tScan.getOutput()[1];
-  EXPECT_EQ(33, r2->getInteger());
-
-  ASSERT_FALSE(tScan.next());
-}
-
-TEST(Operators, PrintTable) {
-  Relation r = getTestRelation();
-  Operator* tScan = new TableScanOperator(r);
+TEST(PrintTableOperator, printsTheTable) {
+  InMemoryScanOperator scan(studentsTable);
   std::stringstream ss;
-  PrintOperator tPrint(tScan, ss);
+  PrintOperator tPrint(&scan, ss);
   tPrint.open();
   while (tPrint.next()) {}
 
   std::stringstream cmpStream;
-  cmpStream << "Alf" << " | " << 50 << std::endl;
-  cmpStream << "Bert" << " | " << 20 << std::endl;
-  cmpStream << "Carl" << " | " << 33 << std::endl;
+  cmpStream << 1 << " | " << "Alf"         << " | " << 50 << std::endl;
+  cmpStream << 2 << " | " << "Bert"        << " | " << 20 << std::endl;
+  cmpStream << 3 << " | " << "Bert's twin" << " | " << 20 << std::endl;
+  cmpStream << 4 << " | " << "Carl"        << " | " << 33 << std::endl;
   EXPECT_EQ(cmpStream.str(), ss.str());
 }
 
-TEST(Operators, ProjectionOperator) {
-  Relation r = getTestRelation();
-  Operator* tScan = new TableScanOperator(r);
+TEST(ProjectionOperator, projectsOnColumns) {
+  InMemoryScanOperator scan(studentsTable);
+  ProjectionOperator tProject(&scan, { 2 }); //project on third column
+  TupleCollector collector(&tProject);
 
-  //Project to Age
-  Operator* tProject = new ProjectionOperator(tScan, { 1 });
-  std::stringstream ss;
-  PrintOperator tPrint(tProject, ss);
-  tPrint.open();
-  while (tPrint.next())
-    ;
-  std::stringstream cmpStream;
-  cmpStream << 50 << std::endl << 20 << std::endl << 33 << std::endl;
-
-  EXPECT_EQ(cmpStream.str(), ss.str());
+  Table collectedTable = collector.collect();
+  Table expectedResult = {
+    { Register(50) },
+    { Register(20) },
+    { Register(20) },
+    { Register(33) },
+  };
+  EXPECT_EQ(expectedResult, collectedTable);
 }
 
-TEST(Operators, SelectionOperator) {
-  Relation r = getTestRelation2();
-  Operator* tScan = new TableScanOperator(r);
+TEST(ProjectionOperator, duplicatesColumns) {
+  InMemoryScanOperator scan(studentsTable);
+  ProjectionOperator tProject(&scan, { 2, 2 }); //duplicate third column
+  TupleCollector collector(&tProject);
 
+  Table collectedTable = collector.collect();
+  Table expectedResult = {
+    { Register(50), Register(50) },
+    { Register(20), Register(20) },
+    { Register(20), Register(20) },
+    { Register(33), Register(33) },
+  };
+  EXPECT_EQ(expectedResult, collectedTable);
+}
+
+TEST(ProjectionOperator, reorderColumns) {
+  InMemoryScanOperator scan(pointsTable);
+  ProjectionOperator tProject(&scan, { 1, 0 }); //swap first and second column
+  TupleCollector collector(&tProject);
+
+  Table collectedTable = collector.collect();
+  Table expectedResult = {
+    { Register(50)         , Register(1) },
+    { Register( 3)        , Register(2) },
+    { Register(90) , Register(3) }
+  };
+  EXPECT_EQ(expectedResult, collectedTable);
+}
+
+TEST(SelectionOperator, selectsTheCorrectTuples) {
+  InMemoryScanOperator scan(studentsTable);
   //Select Tuples where age = 20
-  Operator* tSelect = new SelectionOperator(tScan, 1, Register(20));
-  std::stringstream ss;
-  PrintOperator tPrint(tSelect, ss);
-  tPrint.open();
-  while (tPrint.next())
-    ;
-  std::stringstream cmpStream;
-  cmpStream << "Bert" << " | " << 20 << std::endl;
-  cmpStream << "Berts Twin" << " | " << 20 << std::endl;
+  SelectionOperator tSelect(&scan, 2, Register(20));
+  TupleCollector collector(&tSelect);
 
-  EXPECT_EQ(cmpStream.str(), ss.str());
+  Table collectedTable = collector.collect();
+  Table expectedResult = {
+    { Register(1) , Register("Bert")        , Register(20) },
+    { Register(2) , Register("Bert's Twin") , Register(20) },
+  };
+  EXPECT_EQ(expectedResult, collectedTable);
 }
 
-TEST(Operators, HashJoinOSelfJoin) {
-  Relation r = getTestRelation();
-  Operator* tScan = new TableScanOperator(r);
-  Operator* tScan2 = new TableScanOperator(r);
+TEST(HashJoinOperator, joinsStudentsWithPoints) {
+  InMemoryScanOperator scan1(studentsTable);
+  InMemoryScanOperator scan2(pointsTable);
+  HashJoinOperator tHash(&scan1, &scan2, 2, 2);
+  ProjectionOperator tProject (&tHash, { 0, 1, 4 }); //eliminate age and duplicated MatrNr
+  TupleCollector collector(&tProject);
 
-  Operator* tHash = new HashJoinOperator(tScan, tScan2, 1, 1);
-  std::stringstream ss;
-  PrintOperator tPrint(tHash, ss);
-  tPrint.open();
-  while (tPrint.next())
-    ;
-
-  std::stringstream cmpStream;
-  cmpStream << "Alf" << " | " << 50 << " | " << "Alf" << " | " << 50 << std::endl;
-  cmpStream << "Bert" << " | " << 20 << " | " << "Bert" << " | " << 20 << std::endl;
-  cmpStream << "Carl" << " | " << 33 << " | " << "Carl" << " | " << 33 << std::endl;
-
-  EXPECT_EQ(cmpStream.str(), ss.str());
+  Table collectedTable = collector.collect();
+  Table expectedResult = {
+    { Register(1) , Register("Alf")         , Register(50)},
+    { Register(3) , Register("Bert's twin") , Register( 3)},
+    { Register(4) , Register("Carl")        , Register(90)}
+  };
+  EXPECT_EQ(expectedResult, collectedTable);
 }
 
-TEST(Operators, JoinStudentenHoeren) {
-  Relation studenten = getStudentenRelation();
-  Relation punkte = getPunkteRelation();
-  Operator* tScan = new TableScanOperator(studenten);
-  Operator* tScan2 = new TableScanOperator(punkte);
+TEST(HashJoinOperator, supportsSelfJoins) {
+  InMemoryScanOperator scan1(studentsTable);
+  InMemoryScanOperator scan2(studentsTable);
+  HashJoinOperator tHash(&scan1, &scan2, 2, 2);
+  TupleCollector collector(&tHash);
 
-  Operator* tHash = new HashJoinOperator(tScan, tScan2, 0, 0);
-  Operator* tProject = new ProjectionOperator(tHash, { 0, 1, 3 });
-  std::stringstream ss;
-  PrintOperator tPrint(tProject, ss);
-  tPrint.open();
-  while (tPrint.next())
-    ;
-
-  std::stringstream cmpStream;
-  cmpStream << 1 << " | " << "Alf" << " | " << 50 << std::endl;
-  cmpStream << 2 << " | " << "Bert" << " | " << 90 << std::endl;
-  cmpStream << 3 << " | " << "Carl" << " | " << 3 << std::endl;
-  cmpStream << 4 << " | " << "Dieter" << " | " << 90 << std::endl;
-
-  EXPECT_EQ(cmpStream.str(), ss.str());
-}
-
-Relation getTestRelation() {
-  Relation r;
-  r.addAttribute("Name", TypeTag::Char);
-  r.addAttribute("Age", TypeTag::Integer);
-
-  r.insert( { Register("Alf"), (Register(50)) });
-  r.insert( { Register("Bert"), (Register(20)) });
-  r.insert( { Register("Carl"), (Register(33)) });
-  return r;
-}
-
-Relation getTestRelation2() {
-  Relation r;
-  r.addAttribute("Name", TypeTag::Char);
-  r.addAttribute("Age", TypeTag::Integer);
-
-  r.insert( { Register("Alf"), (Register(50)) });
-  r.insert( { Register("Bert"), (Register(20)) });
-  r.insert( { Register("Carl"), (Register(33)) });
-  r.insert( { Register("Berts Twin"), (Register(20)) });
-  return r;
-}
-
-Relation getStudentenRelation() {
-  Relation r;
-  r.addAttribute("MatrNr", TypeTag::Integer);
-  r.addAttribute("Name", TypeTag::Char);
-
-  r.insert( { Register(1), (Register("Alf")) });
-  r.insert( { Register(2), (Register("Bert")) });
-  r.insert( { Register(3), (Register("Carl")) });
-  r.insert( { Register(4), (Register("Dieter")) });
-  return r;
-}
-
-Relation getPunkteRelation() {
-  Relation r;
-  r.addAttribute("MatrNr", TypeTag::Integer);
-  r.addAttribute("Punkte", TypeTag::Integer);
-
-  r.insert( { Register(1), (Register(50)) });
-  r.insert( { Register(2), (Register(90)) });
-  r.insert( { Register(3), (Register(3)) });
-  r.insert( { Register(4), (Register(90)) });
-  return r;
+  Table collectedTable = collector.collect();
+  Table expectedResult = {
+    { Register(1) , Register("Alf")         , Register(50) , Register(1) , Register("Alf")         , Register(50) },
+    { Register(2) , Register("Bert")        , Register(20) , Register(2) , Register("Bert")        , Register(20) },
+    { Register(2) , Register("Bert")        , Register(20) , Register(3) , Register("Bert's twin") , Register(20) },
+    { Register(3) , Register("Bert's twin") , Register(20) , Register(2) , Register("Bert")        , Register(20) },
+    { Register(3) , Register("Bert's twin") , Register(20) , Register(3) , Register("Bert's twin") , Register(20) },
+    { Register(4) , Register("Carl")        , Register(33) , Register(4) , Register("Carl")        , Register(33) },
+  };
+  EXPECT_EQ(expectedResult, collectedTable);
 }
