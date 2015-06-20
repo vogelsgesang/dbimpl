@@ -2,6 +2,7 @@
 #define _SP_SEGMENT_HPP_
 
 #include <cstdint>
+#include <iterator>
 
 #include "slottedPages/record.h"
 
@@ -54,6 +55,62 @@ namespace dbImpl {
        * instead an exception will be thrown.
        */
       void update(uint64_t tid, const Record& r);
+
+      //SlotIterator must be predeclared
+      class SlotIterator;
+
+      /*
+       * returns an iterator pointing to the first slot.
+       * The returned iterator iterates over all slots stored in this segment.
+       */
+      SlotIterator begin();
+
+      /*
+       * returns an iterator pointing one slot past the last slot
+       */
+      SlotIterator end();
+
+
+      class SlotIterator : public std::iterator<std::input_iterator_tag, Record> {
+        private:
+          friend SlotIterator SPSegment::begin();
+          friend SlotIterator SPSegment::end();
+          SlotIterator(BufferFrame* frame, uint8_t slotNr, BufferManager* bm)
+            : bm(bm), currentFrame(frame), slotNr(slotNr) {}
+        public: 
+          //desctructor, copy constructor, move constructor and assignment operators must
+          //be provided for proper buffer managment
+          ~SlotIterator();
+          SlotIterator(const SlotIterator& other);
+          SlotIterator(SlotIterator&& other);
+          SlotIterator& operator=(const SlotIterator& other);
+          SlotIterator& operator=(SlotIterator&& other);
+          //comparision operators
+          bool operator==(const SlotIterator& rhs) const;
+          bool operator!=(const SlotIterator& rhs) const {return !operator==(rhs);}
+          //post- and pre-increment
+          SlotIterator& operator++();
+          SlotIterator operator++(int) {SlotIterator tmp(*this); operator++(); return tmp;}
+          //dereference
+          Record operator*();
+        private:
+          BufferManager* bm;
+          BufferFrame* currentFrame;
+          //must be bigger than the type of the slotNr used in order
+          //to handle overflows approriately
+          uint16_t slotNr;
+          /*
+           * increments the slotNr and goes to the next page if necessary.
+           * Might set currentFrame to nullptr, if there is no next page.
+           */
+          void incrementSlotNr();
+          /*
+           * increments this iterator until it points to a valid slot
+           * again. If it is already pointing to a valid slot, this method does
+           * nothing.
+           */
+          void normalize();
+      };
 
     protected:
       /**

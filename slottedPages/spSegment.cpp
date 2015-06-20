@@ -233,6 +233,173 @@ namespace dbImpl {
     }
   }
 
+
+  SPSegment::SlotIterator SPSegment::begin() {
+    SlotIterator iter(&bm.fixPage(bm.buildPageId(segmentId, 0), false), 0, &bm);
+    iter.normalize();
+    return iter;
+  }
+
+
+  SPSegment::SlotIterator SPSegment::end() {
+    return SlotIterator(nullptr, 0, &bm);
+  }
+
+
+  SPSegment::SlotIterator::~SlotIterator() {
+    if(currentFrame != nullptr) {
+      bm->unfixPage(*currentFrame, false);
+      currentFrame = nullptr;
+    }
+  }
+
+
+  SPSegment::SlotIterator::SlotIterator(const SlotIterator& other)
+  : bm(other.bm) {
+    //we must fix the page in order to increment the
+    //reference counter accordingly
+    currentFrame = &bm->fixPage(other.currentFrame->pageId, false);
+    slotNr = other.slotNr;
+  }
+
+
+  SPSegment::SlotIterator::SlotIterator(SlotIterator&& other)
+  : bm(other.bm) {
+    //steal the page from the other iterator without incrementing
+    //the reference counter
+    currentFrame = other.currentFrame;
+    other.currentFrame = nullptr;
+    slotNr = other.slotNr;
+  }
+
+
+  SPSegment::SlotIterator& SPSegment::SlotIterator::operator=(const SlotIterator& other) {
+    bm = other.bm;
+    //we must fix the page in order to increment the
+    //reference counter accordingly
+    currentFrame = &bm->fixPage(other.currentFrame->pageId, false);
+    slotNr = other.slotNr;
+    return *this;
+  }
+
+
+  SPSegment::SlotIterator& SPSegment::SlotIterator::operator=(SlotIterator&& other) {
+    bm = other.bm;
+    //steal the page from the other iterator without incrementing
+    //the reference counter
+    currentFrame = other.currentFrame;
+    other.currentFrame = nullptr;
+    slotNr = other.slotNr;
+    return *this;
+  }
+
+
+  //comparision operators
+  bool SPSegment::SlotIterator::operator==(const SlotIterator& rhs) const {
+    return bm == rhs.bm && currentFrame == rhs.currentFrame && slotNr == rhs.slotNr;
+  }
+
+
+  SPSegment::SlotIterator& SPSegment::SlotIterator::operator++() {
+    if(currentFrame != nullptr) {
+      //increment at least once
+      incrementSlotNr();
+      //increment until we reach the next valid slot
+      normalize();
+    }
+    return *this;
+  }
+
+  
+  Record SPSegment::SlotIterator::operator*() {
+    if(currentFrame == nullptr) {
+      return Record(0);
+    } else {
+      //obtain pointers to header & slot descriptors
+      SPHeader* header = reinterpret_cast<SPHeader*>(currentFrame->getData());
+      SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
+      SlotDescriptor slot = slots[slotNr];
+      //redirected?
+      if(slot.isRedirection() || slot.inplace.offset == 0) {
+        throw new std::runtime_error("slot iterator in undefined state");
+      } else {
+        //load data into record
+        uint8_t* data = currentFrame->getData() + slot.inplace.offset;
+        uint32_t len = slot.inplace.len;
+        if(slot.isMigratedSlot()) {
+          data += sizeof(uint64_t);
+          len  -= sizeof(uint64_t);
+        }
+        Record r(len, data);
+        return r;
+      }
+    }
+  }
+
+  void SPSegment::SlotIterator::incrementSlotNr() {
+    slotNr++;
+    SPHeader* header = reinterpret_cast<SPHeader*>(currentFrame->getData());
+    uint64_t pageId = currentFrame->pageId;
+    uint32_t segmentId = bm->getSegmentIdForPageId(pageId);
+    //next page?
+    if(slotNr >= header->nrAllocatedSlots) {
+      bm->unfixPage(*currentFrame, false);
+      pageId++;
+      //passed the end of this segment
+      if(segmentId != bm->getSegmentIdForPageId(pageId)) {
+        //we reached the end
+        currentFrame = nullptr;
+        slotNr = 0;
+      } else {
+        //load next page
+        currentFrame = &bm->fixPage(pageId, false);
+        header = reinterpret_cast<SPHeader*>(currentFrame->getData());
+        slotNr = 0; //reset slotNr
+        //did we reach the last page?
+        if(header->nrAllocatedSlots == 0) {
+          bm->unfixPage(*currentFrame, false);
+          currentFrame = nullptr;
+        }
+      }
+    }
+  }
+
+
+  void SPSegment::SlotIterator::normalize() {
+    if(currentFrame != nullptr) {
+      //increment the slotNr at least once
+      SPHeader* header = reinterpret_cast<SPHeader*>(currentFrame->getData());
+      SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
+      while(currentFrame != nullptr && (slots[slotNr].isRedirection() || slots[slotNr].inplace.offset == 0)) {
+        incrementSlotNr();
+        header = reinterpret_cast<SPHeader*>(currentFrame->getData());
+        slots = reinterpret_cast<SlotDescriptor*> (header + 1);
+      }
+    }
+  }
+
+
+  void SPSegment::compactify(BufferFrame& frame) {
+    SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
+    SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
+
+    std::unique_ptr<uint8_t[]> copiedData(new uint8_t[BufferManager::pageSize]);
+    std::memcpy(copiedData.get(), frame.getData(), BufferManager::pageSize);
+
+    //reset dataStart to the end of the page
+    header->dataStart = BufferManager::pageSize;
+    //put all the records to the end of the page
+    for(int slotNr = header->nrAllocatedSlots-1; slotNr >= 0; slotNr--) {
+      if(slots[slotNr].isRedirection()) {
+        uint32_t newOffset = header->dataStart;
+        header->dataStart -= slots[slotNr].inplace.len;
+        std::memcpy(frame.getData() + newOffset, copiedData.get() + slots[slotNr].inplace.offset, slots[slotNr].inplace.len);
+        slots[slotNr].inplace.offset = newOffset;
+      }
+    }
+  }
+
+
   BufferFrame& SPSegment::getFrameForSize(uint64_t size) {
     if(size > BufferManager::pageSize - sizeof(SPHeader)) {
       throw std::runtime_error("Record larger than maximum supported record size.");
@@ -278,27 +445,6 @@ namespace dbImpl {
     slots[slotNr].inplace = SlotDescriptor::InplaceDescriptor(header->dataStart, r.getLen());
     //write data
     memcpy(frame.getData() + slots[slotNr].inplace.offset, r.getData(), r.getLen());
-  }
-
-
-  void SPSegment::compactify(BufferFrame& frame) {
-    SPHeader* header = reinterpret_cast<SPHeader*>(frame.getData());
-    SlotDescriptor* slots = reinterpret_cast<SlotDescriptor*> (header + 1);
-
-    std::unique_ptr<uint8_t[]> copiedData(new uint8_t[BufferManager::pageSize]);
-    std::memcpy(copiedData.get(), frame.getData(), BufferManager::pageSize);
-
-    //reset dataStart to the end of the page
-    header->dataStart = BufferManager::pageSize;
-    //put all the records to the end of the page
-    for(int slotNr = header->nrAllocatedSlots-1; slotNr >= 0; slotNr--) {
-      if(slots[slotNr].isRedirection()) {
-        uint32_t newOffset = header->dataStart;
-        header->dataStart -= slots[slotNr].inplace.len;
-        std::memcpy(frame.getData() + newOffset, copiedData.get() + slots[slotNr].inplace.offset, slots[slotNr].inplace.len);
-        slots[slotNr].inplace.offset = newOffset;
-      }
-    }
   }
 
 }
