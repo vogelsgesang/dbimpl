@@ -15,6 +15,8 @@ namespace dbImpl {
       TupleDeserializer(std::vector<TypeTag> columnTypes)
         : columnTypes(columnTypes) {}
 
+      const std::vector<TypeTag>& getColumnTypes() { return columnTypes; }
+
       std::vector<Register> operator()(const Record& rec) {
         std::vector<Register> values;
         values.reserve(columnTypes.size());

@@ -4,12 +4,16 @@
 
 #include "operators/inMemoryScan.h"
 #include "operators/tupleCollector.h"
-#include "operators/relation.h"
+#include "operators/tableScan.h"
 #include "schema/relationSchema.h"
 #include "operators/projection.h"
 #include "operators/selection.h"
 #include "operators/hashJoin.h"
 #include "operators/print.h"
+#include "buffer/bufferManager.h"
+#include "slottedPages/spSegment.h"
+#include "schema/relationSchema.h"
+#include "operators/tupleSerializer.h"
 
 using namespace dbImpl;
 
@@ -81,6 +85,30 @@ TEST(PrintTableOperator, printsTheTable) {
   cmpStream << 3 << " | " << "Bert's twin" << " | " << 20 << std::endl;
   cmpStream << 4 << " | " << "Carl"        << " | " << 33 << std::endl;
   EXPECT_EQ(cmpStream.str(), ss.str());
+}
+
+TEST(TableScanOperators, enumeratesAllTuplesFromSPSegment) {
+  BufferManager bm(100);
+  SPSegment spSegment(bm, 1);
+
+  //store the studentsTable into the segment
+  TupleSerializer serialize;
+  std::vector<uint64_t> tids;
+  for(auto row : studentsTable) {
+    tids.push_back(spSegment.insert(serialize(row)));
+  }
+
+  //read the data from the segment using a TableScan
+  TableScanOperator scan(spSegment, std::vector<TypeTag>{TypeTag::Integer, TypeTag::Char, TypeTag::Integer});
+  TupleCollector collector(&scan);
+  Table collectedTable = collector.collect();
+  //did we read the correct data?
+  EXPECT_EQ(studentsTable, collectedTable);
+
+  //delete the table from the segment again
+  for(auto tid : tids) {
+    spSegment.remove(tid);
+  }
 }
 
 TEST(ProjectionOperator, projectsOnColumns) {
