@@ -258,7 +258,11 @@ namespace dbImpl {
   : bm(other.bm) {
     //we must fix the page in order to increment the
     //reference counter accordingly
-    currentFrame = &bm->fixPage(other.currentFrame->pageId, false);
+    if(other.currentFrame != nullptr) {
+      currentFrame = &bm->fixPage(other.currentFrame->pageId, false);
+    } else {
+      currentFrame = nullptr;
+    }
     slotNr = other.slotNr;
   }
 
@@ -277,7 +281,11 @@ namespace dbImpl {
     bm = other.bm;
     //we must fix the page in order to increment the
     //reference counter accordingly
-    currentFrame = &bm->fixPage(other.currentFrame->pageId, false);
+    if(other.currentFrame != nullptr) {
+      currentFrame = &bm->fixPage(other.currentFrame->pageId, false);
+    } else {
+      currentFrame = nullptr;
+    }
     slotNr = other.slotNr;
     return *this;
   }
