@@ -33,7 +33,7 @@ namespace dbImpl {
       // Destructor
       ~Record() {
         if(data != nullptr) {
-          delete data;
+          delete[] data;
         }
       }
       // Get pointer to data
