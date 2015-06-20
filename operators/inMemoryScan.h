@@ -29,8 +29,11 @@ namespace dbImpl {
 
       void open() {
         if(tuples.size() > 0) {
-          registers.resize(tuples.size());
-          output.resize(tuples[1].size());
+          registers.resize(tuples[0].size());
+          output.reserve(tuples[0].size());
+          for(size_t i = 0; i < registers.size(); i++) {
+            output.push_back(&registers[i]);
+          }
         }
         tupleIter = tuples.begin();
       }

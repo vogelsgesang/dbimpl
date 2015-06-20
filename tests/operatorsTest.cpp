@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include <iostream>
 #include <sstream>
 
 #include "operators/inMemoryScan.h"
@@ -36,29 +35,28 @@ TEST(InMemoryScanOperator, scansATable) {
   scan.open();
 
   ASSERT_TRUE(scan.next());
+  EXPECT_EQ(3     , scan.getOutput().size());
   EXPECT_EQ(1     , scan.getOutput()[0]->getInteger());
   EXPECT_EQ("Alf" , scan.getOutput()[1]->getString());
   EXPECT_EQ(50    , scan.getOutput()[2]->getInteger());
 
   ASSERT_TRUE(scan.next());
-  EXPECT_EQ(2     , scan.getOutput()[0]->getInteger());
+  EXPECT_EQ(3      , scan.getOutput().size());
+  EXPECT_EQ(2      , scan.getOutput()[0]->getInteger());
   EXPECT_EQ("Bert" , scan.getOutput()[1]->getString());
   EXPECT_EQ(20     , scan.getOutput()[2]->getInteger());
 
   ASSERT_TRUE(scan.next());
-  EXPECT_EQ(3     , scan.getOutput()[0]->getInteger());
+  EXPECT_EQ(3             , scan.getOutput().size());
+  EXPECT_EQ(3             , scan.getOutput()[0]->getInteger());
   EXPECT_EQ("Bert's twin" , scan.getOutput()[1]->getString());
   EXPECT_EQ(20            , scan.getOutput()[2]->getInteger());
 
   ASSERT_TRUE(scan.next());
-  EXPECT_EQ(4     , scan.getOutput()[0]->getInteger());
+  EXPECT_EQ(3      , scan.getOutput().size());
+  EXPECT_EQ(4      , scan.getOutput()[0]->getInteger());
   EXPECT_EQ("Carl" , scan.getOutput()[1]->getString());
   EXPECT_EQ(33     , scan.getOutput()[2]->getInteger());
-
-  ASSERT_TRUE(scan.next());
-  EXPECT_EQ(5     , scan.getOutput()[0]->getInteger());
-  EXPECT_EQ("Dieter" , scan.getOutput()[1]->getString());
-  EXPECT_EQ(22       , scan.getOutput()[2]->getInteger());
 
   ASSERT_FALSE(scan.next());
 }
@@ -122,9 +120,9 @@ TEST(ProjectionOperator, reorderColumns) {
 
   Table collectedTable = collector.collect();
   Table expectedResult = {
-    { Register(50)         , Register(1) },
-    { Register( 3)        , Register(2) },
-    { Register(90) , Register(3) }
+    { Register(50) , Register(1) } ,
+    { Register( 3) , Register(3) } ,
+    { Register(90) , Register(4) }
   };
   EXPECT_EQ(expectedResult, collectedTable);
 }
@@ -137,8 +135,8 @@ TEST(SelectionOperator, selectsTheCorrectTuples) {
 
   Table collectedTable = collector.collect();
   Table expectedResult = {
-    { Register(1) , Register("Bert")        , Register(20) },
-    { Register(2) , Register("Bert's Twin") , Register(20) },
+    { Register(2) , Register("Bert")        , Register(20) },
+    { Register(3) , Register("Bert's twin") , Register(20) },
   };
   EXPECT_EQ(expectedResult, collectedTable);
 }
@@ -146,7 +144,7 @@ TEST(SelectionOperator, selectsTheCorrectTuples) {
 TEST(HashJoinOperator, joinsStudentsWithPoints) {
   InMemoryScanOperator scan1(studentsTable);
   InMemoryScanOperator scan2(pointsTable);
-  HashJoinOperator tHash(&scan1, &scan2, 2, 2);
+  HashJoinOperator tHash(&scan1, &scan2, 0, 0);
   ProjectionOperator tProject (&tHash, { 0, 1, 4 }); //eliminate age and duplicated MatrNr
   TupleCollector collector(&tProject);
 
@@ -169,8 +167,8 @@ TEST(HashJoinOperator, supportsSelfJoins) {
   Table expectedResult = {
     { Register(1) , Register("Alf")         , Register(50) , Register(1) , Register("Alf")         , Register(50) },
     { Register(2) , Register("Bert")        , Register(20) , Register(2) , Register("Bert")        , Register(20) },
-    { Register(2) , Register("Bert")        , Register(20) , Register(3) , Register("Bert's twin") , Register(20) },
     { Register(3) , Register("Bert's twin") , Register(20) , Register(2) , Register("Bert")        , Register(20) },
+    { Register(2) , Register("Bert")        , Register(20) , Register(3) , Register("Bert's twin") , Register(20) },
     { Register(3) , Register("Bert's twin") , Register(20) , Register(3) , Register("Bert's twin") , Register(20) },
     { Register(4) , Register("Carl")        , Register(33) , Register(4) , Register("Carl")        , Register(33) },
   };

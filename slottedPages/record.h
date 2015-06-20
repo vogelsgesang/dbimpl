@@ -37,6 +37,9 @@ namespace dbImpl {
         }
       }
       // Get pointer to data
+      uint8_t* getData() {
+        return data;
+      }
       const uint8_t* getData() const {
         return data;
       }

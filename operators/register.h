@@ -33,6 +33,8 @@ namespace dbImpl {
           case TypeTag::Char:
             setString(rhs.value.str);
             break;
+          case TypeTag::Invalid:
+            break;
           default:
             throw std::runtime_error("Unknown data type in register");
         }
@@ -113,8 +115,10 @@ namespace dbImpl {
         switch(type) {
           case TypeTag::Integer:
             return value.integer == r.value.integer;
+            break;
           case TypeTag::Char:
             return value.str == r.value.str;
+            break;
           default:
             throw std::runtime_error("Unknown data type in register");
         }

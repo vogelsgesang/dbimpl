@@ -27,10 +27,10 @@ TEST(Register, storesStrings) {
 TEST(Register, enforcesTypes) {
   Register i(1);
   Register s("2");
-  EXPECT_NO_THROW(i.getInteger());
+  EXPECT_NO_THROW (i.getInteger());
   EXPECT_ANY_THROW(i.getString());
   EXPECT_ANY_THROW(s.getInteger());
-  EXPECT_NO_THROW(i.getString());
+  EXPECT_NO_THROW (s.getString());
 }
 
 TEST(Register, canChangeType) {
