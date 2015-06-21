@@ -37,7 +37,7 @@ all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTes
 .PHONY: test
 test: all
 	@echo "=== Deleting segments ==="
-	rm -r segments/
+	if [ -d segments/ ]; then rm -r segments/; fi
 	@echo "=== Executing GoogleTest tests ==="
 	@./bin/runTests$(BIN_SUFFIX)
 	@echo "=== Executing test scripts ==="
