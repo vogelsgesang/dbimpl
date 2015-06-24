@@ -32,7 +32,7 @@ endif
 OBJ_DIR=build/$(BUILD_TYPE)
 
 .PHONY: all
-all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema bin/loadSchema bin/showSchema bin/btreeVisualizer)
+all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema bin/loadSchema bin/showSchema bin/btreeVisualizer bin/hashjoinTest)
 
 .PHONY: test
 test: all
@@ -63,6 +63,12 @@ clean:
 
 SORT_OBJS=cli/sort.o sorting/externalSort.o utils/checkedIO.o
 bin/sort$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SORT_OBJS))
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+HASHJOIN_OBJS=hashjoin/hashjoinTest.o
+bin/hashjoinTest$(BIN_SUFFIX): LDLIBS += -ltbb
+bin/hashjoinTest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(HASHJOIN_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
