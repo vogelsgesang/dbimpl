@@ -163,4 +163,4 @@ build/deps/$(BUILD_TYPE)/%.h.d: %.h
 #include these make rules
 DEPFILES=$(patsubst %, build/deps/$(BUILD_TYPE)/%.d, $(filter-out unused/%, $(filter-out lib/%, $(wildcard **/*.cpp **/*.h))))
 
-include $(DEPFILES)
+-include $(DEPFILES)
