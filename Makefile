@@ -152,15 +152,15 @@ $(OBJ_DIR)/gtest_main.a: $(OBJ_DIR)/gtest-all.o $(OBJ_DIR)/gtest_main.o
 ############################
 #automatically generate Make rules for the included header files
 ############################
-build/deps/%.cpp.d: %.cpp
+build/deps/$(BUILD_TYPE)/%.cpp.d: %.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MF $@ -MM -MP -MT $@ -MT $(basename $@).o $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MF $@ -MM -MP -MT $@ -MT $(OBJ_DIR)/$(basename $<).o $<
 
-build/deps/%.h.d: %.h
+build/deps/$(BUILD_TYPE)/%.h.d: %.h
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MF $@ -MM -MP -MT $@ -MT $(basename $@).o $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MF $@ -MM -MP -MT $@ -MT $(OBJ_DIR)/$(basename $<).o $<
 
 #include these make rules
-DEPFILES=$(patsubst %, build/deps/%.d, $(filter-out unused/%, $(filter-out lib/%, $(wildcard **/*.cpp **/*.h))))
+DEPFILES=$(patsubst %, build/deps/$(BUILD_TYPE)/%.d, $(filter-out unused/%, $(filter-out lib/%, $(wildcard **/*.cpp **/*.h))))
 
--include $(DEPFILES)
+include $(DEPFILES)
