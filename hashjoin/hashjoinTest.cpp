@@ -3,7 +3,8 @@
 #include <atomic>
 #include <tbb/tbb.h>
 #include <unordered_map>
-#include "hashjoin/chainingHT.inl.cpp"
+#include "hashjoin/chainingHT.inl.h"
+#include "hashjoin/linearProbingHT.inl.h"
 
 using namespace tbb;
 using namespace std;
@@ -25,6 +26,41 @@ struct MumurHasher {
      return h|(1ull<<63);
   }
 };
+
+
+template<typename HtImplementation>
+void testHashTable(uint64_t sizeR, uint64_t sizeS, uint64_t* R, uint64_t* S) {
+  // Build hash table (multi threaded)
+  tick_count buildTS=tick_count::now();
+
+  HtImplementation ht(sizeR);
+
+  parallel_for(blocked_range<size_t>(0, sizeR), [&](const blocked_range<size_t>& range) {
+               for (size_t i=range.begin(); i!=range.end(); ++i) {
+               ht.insert(R[i], 0);
+               }
+               });
+  tick_count probeTS=tick_count::now();
+  cout << "build:" << (sizeR/1e6)/(probeTS-buildTS).seconds() << "MT/s ";
+
+  // Probe hash table and count number of hits
+  std::atomic<uint64_t> hitCounter;
+  hitCounter=0;
+  parallel_for(blocked_range<size_t>(0, sizeS), [&](const blocked_range<size_t>& range) {
+               uint64_t localHitCounter=0;
+               for (size_t i=range.begin(); i!=range.end(); ++i) {
+               auto lookupRange = ht.lookup(S[i]);
+               for (auto it=lookupRange.begin(); it != lookupRange.end(); ++it)
+               localHitCounter++;
+               }
+               hitCounter+=localHitCounter;
+               });
+  tick_count stopTS=tick_count::now();
+  cout << "probe: " << (sizeS/1e6)/(stopTS-probeTS).seconds() << "MT/s "
+    << "total: " << ((sizeR+sizeS)/1e6)/(stopTS-buildTS).seconds() << "MT/s "
+    << "count: " << hitCounter << endl;
+}
+
 
 int main(int argc,char** argv) {
    if(argc < 4) {
@@ -82,38 +118,12 @@ int main(int argc,char** argv) {
    }
 
 
-   //ChainingHT
-   {
-      // Build hash table (single threaded)
-      tick_count buildTS=tick_count::now();
-      
-      ChainingHT<MumurHasher> ht(sizeR);
+   //own implementations
+   std::cout << "ChainingHT        ";
+   testHashTable<ChainingHT<MumurHasher>>(sizeR, sizeS, R, S);
+   std::cout << "LinearProbingHT   ";
+   testHashTable<LinearProbingHT<MumurHasher>>(sizeR, sizeS, R, S);
 
-      parallel_for(blocked_range<size_t>(0, sizeR), [&](const blocked_range<size_t>& range) {
-        for (size_t i=range.begin(); i!=range.end(); ++i) {
-          ht.insert(R[i], 0);
-        }
-      });
-      tick_count probeTS=tick_count::now();
-      cout << "ChainingHT      build:" << (sizeR/1e6)/(probeTS-buildTS).seconds() << "MT/s ";
-
-      // Probe hash table and count number of hits
-      std::atomic<uint64_t> hitCounter;
-      hitCounter=0;
-      parallel_for(blocked_range<size_t>(0, sizeS), [&](const blocked_range<size_t>& range) {
-            uint64_t localHitCounter=0;
-            for (size_t i=range.begin(); i!=range.end(); ++i) {
-               auto lookupRange = ht.lookup(S[i]);
-               for (auto it=lookupRange.begin(); it != lookupRange.end(); ++it)
-                  localHitCounter++;
-            }
-            hitCounter+=localHitCounter;
-         });
-      tick_count stopTS=tick_count::now();
-      cout << "probe: " << (sizeS/1e6)/(stopTS-probeTS).seconds() << "MT/s "
-           << "total: " << ((sizeR+sizeS)/1e6)/(stopTS-buildTS).seconds() << "MT/s "
-           << "count: " << hitCounter << endl;
-   }
    // Test you implementation here... (like the STL test above)
 
    return 0;

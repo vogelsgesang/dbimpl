@@ -2,8 +2,6 @@
 #include <cstring>
 #include <atomic>
 
-#include <iostream>
-
 template<typename Hasher>
 class ChainingHT {
   private:
@@ -28,7 +26,7 @@ class ChainingHT {
      {
        hashTableSize = size*2; //load factor 0.5
        //round hashTableSize to power of two
-       hashTable--;
+       hashTableSize--;
        hashTableSize |= hashTableSize >> 1;
        hashTableSize |= hashTableSize >> 2;
        hashTableSize |= hashTableSize >> 4;
@@ -71,10 +69,10 @@ class ChainingHT {
          }
 
          RangeIterator& operator++() {
-            do {
+           do {
              entry = entry->next;
-            } while(entry != nullptr && entry->key != key);
-            return *this;
+           } while(entry != nullptr && entry->key != key);
+           return *this;
          }
 
          RangeIterator operator++(int) { RangeIterator r(*this); operator++(); return r; };
