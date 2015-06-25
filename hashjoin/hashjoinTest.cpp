@@ -3,25 +3,28 @@
 #include <atomic>
 #include <tbb/tbb.h>
 #include <unordered_map>
+#include "hashjoin/chainingHT.inl.cpp"
 
 using namespace tbb;
 using namespace std;
 
-inline uint64_t hashKey(uint64_t k) {
-   // MurmurHash64A
-   const uint64_t m = 0xc6a4a7935bd1e995;
-   const int r = 47;
-   uint64_t h = 0x8445d61a4e774912 ^ (8*m);
-   k *= m;
-   k ^= k >> r;
-   k *= m;
-   h ^= k;
-   h *= m;
-   h ^= h >> r;
-   h *= m;
-   h ^= h >> r;
-   return h|(1ull<<63);
-}
+struct MumurHasher {
+  inline uint64_t operator()(uint64_t k) const {
+     // MurmurHash64A
+     const uint64_t m = 0xc6a4a7935bd1e995;
+     const int r = 47;
+     uint64_t h = 0x8445d61a4e774912 ^ (8*m);
+     k *= m;
+     k ^= k >> r;
+     k *= m;
+     h ^= k;
+     h *= m;
+     h ^= h >> r;
+     h *= m;
+     h ^= h >> r;
+     return h|(1ull<<63);
+  }
+};
 
 int main(int argc,char** argv) {
    if(argc < 4) {
@@ -78,6 +81,39 @@ int main(int argc,char** argv) {
            << "count: " << hitCounter << endl;
    }
 
+
+   //ChainingHT
+   {
+      // Build hash table (single threaded)
+      tick_count buildTS=tick_count::now();
+      
+      ChainingHT<MumurHasher> ht(sizeR);
+
+      parallel_for(blocked_range<size_t>(0, sizeR), [&](const blocked_range<size_t>& range) {
+        for (size_t i=range.begin(); i!=range.end(); ++i) {
+          ht.insert(R[i], 0);
+        }
+      });
+      tick_count probeTS=tick_count::now();
+      cout << "ChainingHT      build:" << (sizeR/1e6)/(probeTS-buildTS).seconds() << "MT/s ";
+
+      // Probe hash table and count number of hits
+      std::atomic<uint64_t> hitCounter;
+      hitCounter=0;
+      parallel_for(blocked_range<size_t>(0, sizeS), [&](const blocked_range<size_t>& range) {
+            uint64_t localHitCounter=0;
+            for (size_t i=range.begin(); i!=range.end(); ++i) {
+               auto lookupRange = ht.lookup(S[i]);
+               for (auto it=lookupRange.begin(); it != lookupRange.end(); ++it)
+                  localHitCounter++;
+            }
+            hitCounter+=localHitCounter;
+         });
+      tick_count stopTS=tick_count::now();
+      cout << "probe: " << (sizeS/1e6)/(stopTS-probeTS).seconds() << "MT/s "
+           << "total: " << ((sizeR+sizeS)/1e6)/(stopTS-buildTS).seconds() << "MT/s "
+           << "count: " << hitCounter << endl;
+   }
    // Test you implementation here... (like the STL test above)
 
    return 0;
