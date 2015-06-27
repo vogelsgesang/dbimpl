@@ -1,16 +1,14 @@
 #include <cstdint>
 #include <cstring>
 #include <atomic>
+#include "hashjoin/chainedRangeIterator.h"
+
+
 
 template<typename Hasher>
 class ChainingHT {
   private:
-    // Chained tuple entry
-    struct Entry {
-      uint64_t key;
-      uint64_t value;
-      Entry* next;
-    };
+
 
     Entry* firstEntry;
     std::atomic<Entry*> nextFreeEntry;
@@ -59,54 +57,8 @@ class ChainingHT {
       entry->next = hashTable[bucketNr].exchange(entry);
     }
 
-    //this iterator is used to iterate over the results of a lookup
-    class RangeIterator {
-      public:
-        RangeIterator(Entry* entry, uint64_t key) : entry(entry), key(key) {}
 
-        uint64_t operator*() const {
-          return entry->value;
-        }
 
-        RangeIterator& operator++() {
-          do {
-            entry = entry->next;
-          } while(entry != nullptr && entry->key != key);
-          return *this;
-        }
-
-        RangeIterator operator++(int) { RangeIterator r(*this); operator++(); return r; };
-
-        bool operator== (const RangeIterator& rhs) const {
-          return entry == rhs.entry && key == rhs.key;
-        }
-
-        bool operator!= (const RangeIterator& rhs) const {
-          return !operator==(rhs);
-        }
-
-      private:
-        Entry* entry;
-        uint64_t key;
-    };
-
-    //represents the results of a lookup
-    class Range {
-      public:
-        Range(Entry* chainStart, uint64_t key) : chainStart(chainStart), key(key) {}
-
-        RangeIterator begin() {
-          return RangeIterator(chainStart, key);
-        }
-
-        RangeIterator end() {
-          return RangeIterator(nullptr, key);
-        }
-
-      private:
-        Entry* chainStart;
-        uint64_t key;
-    };
 
     Range lookup(uint64_t key) const {
       uint64_t hash = hashKey(key);
