@@ -30,6 +30,7 @@ public:
   // Destructor
   ~ChainingLockingHT() {
     delete[] hashTable;
+    delete[] entries;
   }
 
   inline void insert(uint64_t key, uint64_t value) {
@@ -46,7 +47,6 @@ public:
 
   }
 
-
   Range lookup(uint64_t key) const {
     uint64_t hash = hashKey(key);
     uint64_t bucketNr = hash & keyBits;
@@ -58,13 +58,12 @@ private:
   struct Bucket {
     Entry* firstEntry;
     tbb::spin_mutex mutex;
-    void lock(){
+    void lock() {
       mutex.lock();
     }
-    void unlock(){
+    void unlock() {
       mutex.unlock();
     }
-
 
   };
 
