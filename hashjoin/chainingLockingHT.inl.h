@@ -1,4 +1,6 @@
 #include <cstdint>
+#include "tbb/spin_mutex.h"
+
 #include "hashjoin/chainedRangeIterator.h"
 
 template<typename Hasher>
@@ -31,7 +33,7 @@ public:
   }
 
   inline void insert(uint64_t key, uint64_t value) {
-    Entry* newEntry = nextFreeEntry.fetch_add(1);
+    Entry* newEntry = nextFreeEntry++;
     newEntry->key = key;
     newEntry->value = value;
 
@@ -48,16 +50,21 @@ public:
   Range lookup(uint64_t key) const {
     uint64_t hash = hashKey(key);
     uint64_t bucketNr = hash & keyBits;
-    Entry* chainStart = hashTable[bucketNr];
+    Entry* chainStart = hashTable[bucketNr].firstEntry;
     return Range(chainStart, key);
   }
 
 private:
   struct Bucket {
     Entry* firstEntry;
-    //TODO mutex for Bucket
-    void lock();
-    void unlock();
+    tbb::spin_mutex mutex;
+    void lock(){
+      mutex.lock();
+    }
+    void unlock(){
+      mutex.unlock();
+    }
+
 
   };
 
@@ -69,6 +76,6 @@ private:
 
   Hasher hashKey;
 
-  Bucket hashTable[];
+  Bucket* hashTable;
 };
 

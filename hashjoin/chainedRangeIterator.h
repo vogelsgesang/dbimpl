@@ -1,3 +1,5 @@
+#ifndef _CHAINED_RANGEITERATOR_H_
+#define _CHAINED_RANGEITERATOR_H_
 //this iterator is used to iterate over the results of a lookup
 
 struct Entry {
@@ -63,3 +65,5 @@ private:
   Entry* chainStart;
   uint64_t key;
 };
+
+#endif

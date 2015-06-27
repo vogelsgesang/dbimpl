@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "hashjoin/chainingHT.inl.h"
 #include "hashjoin/linearProbingHT.inl.h"
+#include "hashjoin/chainingLockingHT.inl.h"
 
 using namespace tbb;
 using namespace std;
@@ -119,6 +120,8 @@ int main(int argc,char** argv) {
 
 
    //own implementations
+   std::cout << "ChainingHT with locking        ";
+   testHashTable<ChainingLockingHT<MumurHasher>>(sizeR, sizeS, R, S);
    std::cout << "ChainingHT        ";
    testHashTable<ChainingHT<MumurHasher>>(sizeR, sizeS, R, S);
    std::cout << "LinearProbingHT   ";
