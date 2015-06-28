@@ -56,7 +56,7 @@ public:
 
 private:
   struct Bucket {
-    Entry* firstEntry;
+    Entry* firstEntry = nullptr;
     tbb::spin_mutex mutex;
     void lock() {
       mutex.lock();
