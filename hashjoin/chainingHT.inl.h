@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstring>
 #include <atomic>
+#include <utility>
 #include "hashjoin/chainedRangeIterator.h"
 
 
@@ -44,6 +45,23 @@ class ChainingHT {
     ~ChainingHT() {
       delete[] firstEntry;
       delete[] hashTable;
+    }
+
+    template<typename SourceFunctor>
+    inline void insertChunk(uint64_t chunkSize, SourceFunctor next) {
+      //allocate new elements for the chain
+      Entry* entry = nextFreeEntry.fetch_add(chunkSize);
+      for(size_t i = 0; i != chunkSize; i++) {
+        std::pair<uint64_t, uint64_t> entryPair = next();
+        uint64_t hash = hashKey(entryPair.first);
+        uint64_t bucketNr = hash & keyBits;
+        entry->key = entryPair.first;
+        entry->value = entryPair.second;
+        //insert element into chain
+        entry->next = hashTable[bucketNr].exchange(entry);
+        //advance to next element
+        entry++;
+      }
     }
 
     inline void insert(uint64_t key, uint64_t value) {
