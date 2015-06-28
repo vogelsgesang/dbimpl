@@ -67,7 +67,7 @@ bin/sort$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SORT_OBJS))
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 HASHJOIN_OBJS=hashjoin/hashjoinTest.o
-bin/hashjoinTest$(BIN_SUFFIX): LDLIBS += -ltbb
+bin/hashjoinTest$(BIN_SUFFIX): LDLIBS += -ltbb -lrt
 bin/hashjoinTest$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(HASHJOIN_OBJS))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
