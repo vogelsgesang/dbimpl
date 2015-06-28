@@ -38,7 +38,7 @@ void testHashTable(uint64_t sizeR, uint64_t sizeS, uint64_t* R, uint64_t* S) {
   parallel_for(blocked_range < size_t > (0, sizeR),
       [&](const blocked_range<size_t>& range) {
         for (size_t i=range.begin(); i!=range.end(); ++i) {
-          ht.insert(R[i], 0);
+          ht.insert(R[i], R[i]);
         }
       });
   tick_count probeTS = tick_count::now();
@@ -52,8 +52,14 @@ void testHashTable(uint64_t sizeR, uint64_t sizeS, uint64_t* R, uint64_t* S) {
         uint64_t localHitCounter=0;
         for (size_t i=range.begin(); i!=range.end(); ++i) {
           auto lookupRange = ht.lookup(S[i]);
-          for (auto it=lookupRange.begin(); it != lookupRange.end(); ++it)
-          localHitCounter++;
+          for (auto it=lookupRange.begin(); it != lookupRange.end(); ++it) {
+            #ifdef DEBUG
+            if(*it != S[i]) {
+              cout << "Got entry for key " << *it << " instead of for " << S[i] << std::endl;
+            }
+            #endif
+            localHitCounter++;
+          }
         }
         hitCounter+=localHitCounter;
       });
@@ -129,8 +135,6 @@ int main(int argc, char** argv) {
   testHashTable<ChainingHT<MumurHasher>>(sizeR, sizeS, R, S);
   std::cout << "LinearProbingHT   ";
   testHashTable<LinearProbingHT<MumurHasher>>(sizeR, sizeS, R, S);
-
-  // Test you implementation here... (like the STL test above)
 
   return 0;
 }
