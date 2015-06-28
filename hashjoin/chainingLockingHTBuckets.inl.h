@@ -1,15 +1,15 @@
 #include <cstdint>
 #include "tbb/spin_mutex.h"
 
-#include "hashjoin/chainedRangeIterator.h"
+#include "hashjoin/chainedRangeIteratorBuckets.h"
 
 template<typename Hasher>
-class ChainingLockingHT {
+class ChainingLockingHTBuckets {
   typedef typename tbb::spin_mutex BucketLock;
 public:
 
   // Constructor
-  ChainingLockingHT(uint64_t size) {
+  ChainingLockingHTBuckets(uint64_t size) {
     hashTableSize = size * 2; //load factor 0.5
     //round hashTableSize to power of two
     hashTableSize--;
@@ -22,23 +22,19 @@ public:
     hashTableSize++;
     keyBits = hashTableSize - 1;
 
-    hashTable = new Entry*[hashTableSize];
-    memset(hashTable, 0, hashTableSize * sizeof(Entry*));
-    entries = new Entry[size];
+    hashTable = new Bucket[hashTableSize];
     bucketLocks = new BucketLock[hashTableSize];
 
-    nextFreeEntry = entries - 1;
   }
 
   // Destructor
-  ~ChainingLockingHT() {
+  ~ChainingLockingHTBuckets() {
     delete[] hashTable;
     delete[] bucketLocks;
-    delete[] entries;
   }
 
   inline void insert(uint64_t key, uint64_t value) {
-    Entry* newEntry = ++nextFreeEntry;
+    Entry newEntry;
     newEntry->key = key;
     newEntry->value = value;
 
@@ -47,31 +43,33 @@ public:
     bucketLocks[bucketNr].lock();
 
     //Redirect Bucket pointer to new Entry (in all cases --> branchfreeness)
-    Entry* firstBucketEntry = hashTable[bucketNr];
-    newEntry->next = firstBucketEntry;
-    hashTable[bucketNr] = newEntry;
+    Bucket* bucket = &hashTable[bucketNr];
 
+    if (bucket->isFull()) {
+      Bucket overflowBucket;
+      overflowBucket.entries[--overflowBucket.firstFreeEntry] = newEntry;
+      std::swap(overflowBucket, *bucket);
+      bucket->next = &overflowBucket;
+    } else {
+      bucket->entries[--bucket->firstFreeEntry] = newEntry;
+    }
     bucketLocks[bucketNr].unlock();
   }
 
-  Range lookup(uint64_t key) const {
+  RangeBuckets lookup(uint64_t key) const {
     uint64_t hash = hashKey(key);
     uint64_t bucketNr = hash & keyBits;
-    Entry* chainStart = hashTable[bucketNr];
-    return Range(chainStart, key);
+    Bucket* chainStart = &hashTable[bucketNr];
+    return RangeBuckets(chainStart, key);
   }
 
 private:
-
-  Entry* entries;
-  Entry* nextFreeEntry;
-
   uint64_t hashTableSize;
   uint64_t keyBits;
 
   Hasher hashKey;
 
-  Entry** hashTable;
+  Bucket* hashTable;
   BucketLock* bucketLocks;
 
 };
