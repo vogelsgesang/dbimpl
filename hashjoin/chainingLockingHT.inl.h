@@ -5,6 +5,7 @@
 
 template<typename Hasher>
 class ChainingLockingHT {
+  typedef typename tbb::spin_mutex BucketLock;
 public:
 
   // Constructor
@@ -21,51 +22,46 @@ public:
     hashTableSize++;
     keyBits = hashTableSize - 1;
 
-    hashTable = new Bucket[hashTableSize];
+    hashTable = new Entry*[hashTableSize];
+    memset(hashTable, 0, hashTableSize * sizeof(Entry*));
     entries = new Entry[size];
+    bucketLocks = new BucketLock[hashTableSize];
 
-    nextFreeEntry = entries;
+    nextFreeEntry = entries - 1;
   }
 
   // Destructor
   ~ChainingLockingHT() {
     delete[] hashTable;
+    delete[] bucketLocks;
     delete[] entries;
   }
 
   inline void insert(uint64_t key, uint64_t value) {
-    Entry* newEntry = nextFreeEntry++;
+    Entry* newEntry = ++nextFreeEntry; //TODO atomic?
     newEntry->key = key;
     newEntry->value = value;
 
+    //Determine and lock bucket
     uint64_t bucketNr = hashKey(key) & keyBits;
-    hashTable[bucketNr].lock();
-    Entry* firstBucketEntry = hashTable[bucketNr].firstEntry;
-    newEntry->next = firstBucketEntry;
-    hashTable[bucketNr].firstEntry = newEntry;
-    hashTable[bucketNr].unlock();
+    bucketLocks[bucketNr].lock();
 
+    //Redirect Bucket pointer to new Entry (in all cases --> branchfreeness)
+    Entry* firstBucketEntry = hashTable[bucketNr];
+    newEntry->next = firstBucketEntry;
+    hashTable[bucketNr] = newEntry;
+
+    bucketLocks[bucketNr].unlock();
   }
 
   Range lookup(uint64_t key) const {
     uint64_t hash = hashKey(key);
     uint64_t bucketNr = hash & keyBits;
-    Entry* chainStart = hashTable[bucketNr].firstEntry;
+    Entry* chainStart = hashTable[bucketNr];
     return Range(chainStart, key);
   }
 
 private:
-  struct Bucket {
-    Entry* firstEntry = nullptr;
-    tbb::spin_mutex mutex;
-    void lock() {
-      mutex.lock();
-    }
-    void unlock() {
-      mutex.unlock();
-    }
-
-  };
 
   Entry* entries;
   Entry* nextFreeEntry;
@@ -75,6 +71,8 @@ private:
 
   Hasher hashKey;
 
-  Bucket* hashTable;
+  Entry** hashTable;
+  BucketLock* bucketLocks;
+
 };
 
