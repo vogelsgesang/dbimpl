@@ -57,9 +57,6 @@ class ChainingHT {
       entry->next = hashTable[bucketNr].exchange(entry);
     }
 
-
-
-
     Range lookup(uint64_t key) const {
       uint64_t hash = hashKey(key);
       uint64_t bucketNr = hash & keyBits;

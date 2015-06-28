@@ -99,10 +99,14 @@ class LinearProbingHT {
     class Range {
       public:
         Range(Entry* entries, uint64_t keyBits, uint64_t startBucketNr, uint64_t key)
-          : entries(entries), keyBits(keyBits), startBucketNr(startBucketNr), key(key) {}
+        : entries(entries), keyBits(keyBits), bucketNr(startBucketNr), key(key) {
+          while(entries[bucketNr].occupied && entries[bucketNr].key != key) {
+            bucketNr = (bucketNr + 1) & keyBits;
+          }
+        }
 
         RangeIterator begin() {
-          return RangeIterator(entries, keyBits, startBucketNr, key);
+          return RangeIterator(entries, keyBits, bucketNr, key);
         }
 
         EndIterator end() {
@@ -112,7 +116,7 @@ class LinearProbingHT {
       private:
         Entry* entries;
         uint64_t keyBits;
-        uint64_t startBucketNr;
+        uint64_t bucketNr;
         uint64_t key;
     };
 

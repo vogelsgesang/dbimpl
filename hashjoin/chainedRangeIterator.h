@@ -49,12 +49,15 @@ class RangeIterator {
 //represents the results of a lookup
 class Range {
   public:
-    Range(Entry* chainStart, uint64_t key) :
-      chainStart(chainStart), key(key) {
+    Range(Entry* chainStart, uint64_t key)
+    : firstElement(chainStart), key(key) {
+      while(firstElement != nullptr && firstElement->key != key) {
+        firstElement = firstElement->next;
       }
+    }
 
     RangeIterator begin() {
-      return RangeIterator(chainStart, key);
+      return RangeIterator(firstElement, key);
     }
 
     RangeIterator end() {
@@ -62,7 +65,7 @@ class Range {
     }
 
   private:
-    Entry* chainStart;
+    Entry* firstElement;
     uint64_t key;
 };
 
