@@ -26,6 +26,8 @@ public:
     memset(hashTable, 0, hashTableSize * sizeof(Entry*));
     entries = new Entry[size];
     bucketLocks = new BucketLock[hashTableSize];
+    memset(bucketLocks, tbb::spin_mutex::spin_mutex(),
+        hashTableSize * sizeof(BucketLock));
 
     nextFreeEntry = entries - 1;
   }
@@ -44,14 +46,15 @@ public:
 
     //Determine and lock bucket
     uint64_t bucketNr = hashKey(key) & keyBits;
-    bucketLocks[bucketNr].lock();
+    BucketLock::scoped_lock lock;
+    lock.acquire(bucketLocks[bucketNr]);
 
     //Redirect Bucket pointer to new Entry (in all cases --> branchfreeness)
     Entry* firstBucketEntry = hashTable[bucketNr];
     newEntry->next = firstBucketEntry;
     hashTable[bucketNr] = newEntry;
+    lock.release();
 
-    bucketLocks[bucketNr].unlock();
   }
 
   Range lookup(uint64_t key) const {
@@ -64,7 +67,7 @@ public:
 private:
 
   Entry* entries;
-  Entry* nextFreeEntry;
+  std::atomic<Entry*> nextFreeEntry;
 
   uint64_t hashTableSize;
   uint64_t keyBits;
