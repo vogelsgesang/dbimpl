@@ -32,7 +32,7 @@ endif
 OBJ_DIR=build/$(BUILD_TYPE)
 
 .PHONY: all
-all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema bin/loadSchema bin/showSchema bin/btreeVisualizer bin/hashjoinTest)
+all: $(addsuffix $(BIN_SUFFIX), bin/sort bin/generateRandomUint64File bin/runTests bin/isSorted bin/buffertest bin/parseSchema bin/loadSchema bin/showSchema bin/btreeVisualizer bin/hashjoinTest bin/expressionJitter)
 
 .PHONY: test
 test: all
@@ -105,6 +105,14 @@ bin/showSchema$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(SHOW_SCHEMA_OBJS))
 
 BTREE_VISUALIZER_OBJS=cli/btreeVisualizer.o buffer/bufferManager.o buffer/bufferFrame.o utils/checkedIO.o #cli/BTreeTest.o 
 bin/btreeVisualizer$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BTREE_VISUALIZER_OBJS))
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+EXPRESSION_JITTER_OBJ=codegen/test.o
+bin/expressionJitter$(BIN_SUFFIX): CXXFLAGS += $(shell llvm-config --cxxflags)
+bin/expressionJitter$(BIN_SUFFIX): LDFLAGS  += $(shell llvm-config --ldflags)
+bin/expressionJitter$(BIN_SUFFIX): LDLIBS   += $(shell llvm-config --libs all) -ldl -ltinfo -lz -lffi
+bin/expressionJitter$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(EXPRESSION_JITTER_OBJ))
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
