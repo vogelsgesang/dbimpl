@@ -4,6 +4,7 @@
 #include <tbb/tbb.h>
 #include <unordered_map>
 #include <utility>
+#include <ext/mt_allocator.h>
 #include "hashjoin/chainingHT.inl.h"
 #include "hashjoin/linearProbingHT.inl.h"
 #include "hashjoin/chainingLockingHT.inl.h"
@@ -112,7 +113,7 @@ int main(int argc, char** argv) {
   {
     // Build hash table (single threaded)
     tick_count buildTS = tick_count::now();
-    unordered_multimap < uint64_t, uint64_t > ht(sizeR);
+    unordered_multimap < uint64_t, uint64_t, std::hash<uint64_t>, std::equal_to<uint64_t>, __gnu_cxx::__mt_alloc<pair<const uint64_t, uint64_t>>> ht(sizeR);
     for (uint64_t i = 0; i < sizeR; i++)
       ht.emplace(R[i], 0);
     tick_count probeTS = tick_count::now();
