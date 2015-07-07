@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <ext/mt_allocator.h>
+#include <memory>
 #include "hashjoin/chainingHT.inl.h"
 #include "hashjoin/linearProbingHT.inl.h"
 #include "hashjoin/chainingLockingHT.inl.h"
@@ -141,14 +142,20 @@ int main(int argc, char** argv) {
     // Build hash table (multi threaded)
     tick_count buildTS = tick_count::now();
     ChainingHT<MumurHasher> ht(sizeR);
-    parallel_for(blocked_range < size_t > (0, sizeR),
+    typedef ChainingHT<MumurHasher>::Entry Entry;
+    std::unique_ptr<Entry> firstEntry(new Entry[sizeR]);
+    std::atomic<Entry*> nextFreeEntry(firstEntry.get());
+    parallel_for(blocked_range < size_t > (0, sizeR, 1000),
                  [&](const blocked_range<size_t>& range) {
-                   size_t i = range.begin();
-                   ht.insertChunk(range.end() - range.begin(), [&]() {
-                                    size_t j = i;
-                                    i++;
-                                    return std::make_pair(R[j], R[j]);
-                                  });
+                   size_t chunkSize = range.end() - range.begin();
+                   Entry* entry = nextFreeEntry.fetch_add(chunkSize);
+                   for (size_t i=range.begin(); i!=range.end(); ++i) {
+                     entry->key = R[i];
+                     //entry->value is ignored anyway...
+                     ht.insert(entry);
+                     //advance to next element
+                     entry++;
+                   }
                  });
     tick_count probeTS = tick_count::now();
     cout << "build:" << (sizeR / 1e6) / (probeTS - buildTS).seconds() << "MT/s ";

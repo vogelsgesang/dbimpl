@@ -13,8 +13,6 @@ class ChainingHT {
     };
 
   private:
-    Entry* firstEntry;
-    std::atomic<Entry*> nextFreeEntry;
     std::atomic<Entry*>* hashTable;
     uint64_t hashTableSize;
     uint64_t keyBits;
@@ -39,40 +37,17 @@ class ChainingHT {
       //allocate memory and prepare it
       hashTable = new std::atomic<Entry*>[hashTableSize];
       memset(hashTable, 0, hashTableSize*sizeof(std::atomic<Entry*>));
-      firstEntry = new Entry[size];
-      nextFreeEntry = firstEntry;
     }
 
     // Destructor
     ~ChainingHT() {
-      delete[] firstEntry;
       delete[] hashTable;
     }
 
-    template<typename SourceFunctor>
-    inline void insertChunk(uint64_t chunkSize, SourceFunctor next) {
-      //allocate new elements for the chain
-      Entry* entry = nextFreeEntry.fetch_add(chunkSize);
-      for(size_t i = 0; i != chunkSize; i++) {
-        std::pair<uint64_t, uint64_t> entryPair = next();
-        uint64_t hash = hashKey(entryPair.first);
-        uint64_t bucketNr = hash & keyBits;
-        entry->key = entryPair.first;
-        entry->value = entryPair.second;
-        //insert element into chain
-        entry->next = hashTable[bucketNr].exchange(entry);
-        //advance to next element
-        entry++;
-      }
-    }
-
-    inline void insert(uint64_t key, uint64_t value) {
+    inline void insert(Entry* entry) {
       //allocate a new element for the chain
-      Entry* entry = nextFreeEntry.fetch_add(1);
-      uint64_t hash = hashKey(key);
+      uint64_t hash = hashKey(entry->key);
       uint64_t bucketNr = hash & keyBits;
-      entry->key = key;
-      entry->value = value;
       //insert element into chain
       entry->next = hashTable[bucketNr].exchange(entry);
     }
