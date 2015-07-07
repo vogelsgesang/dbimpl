@@ -1,12 +1,17 @@
 #include <cstdint>
+#include <atomic>
 #include "tbb/spin_mutex.h"
-
-#include "hashjoin/chainedRangeIterator.h"
 
 template<typename Hasher>
 class ChainingLockingHT {
   typedef typename tbb::spin_mutex BucketLock;
 public:
+  struct Entry {
+    uint64_t key;
+    uint64_t value;
+    Entry* next;
+  };
+
 
   // Constructor
   ChainingLockingHT(uint64_t size) {
@@ -57,15 +62,19 @@ public:
 
   }
 
-  Range lookup(uint64_t key) const {
+  uint64_t lookup(uint64_t key) const {
     uint64_t hash = hashKey(key);
     uint64_t bucketNr = hash & keyBits;
-    Entry* chainStart = hashTable[bucketNr];
-    return Range(chainStart, key);
+    Entry* currentEntry = hashTable[bucketNr];
+    uint64_t cnt = 0;
+    while(currentEntry != nullptr) {
+      cnt += currentEntry->key == key;
+      currentEntry = currentEntry->next;
+    }
+    return cnt;
   }
 
 private:
-
   Entry* entries;
   std::atomic<Entry*> nextFreeEntry;
 
@@ -76,6 +85,5 @@ private:
 
   Entry** hashTable;
   BucketLock* bucketLocks;
-
 };
 

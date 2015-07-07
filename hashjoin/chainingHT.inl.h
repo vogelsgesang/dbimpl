@@ -2,15 +2,17 @@
 #include <cstring>
 #include <atomic>
 #include <utility>
-#include "hashjoin/chainedRangeIterator.h"
-
-
 
 template<typename Hasher>
 class ChainingHT {
+  public:
+    struct Entry {
+      uint64_t key;
+      uint64_t value;
+      Entry* next;
+    };
+
   private:
-
-
     Entry* firstEntry;
     std::atomic<Entry*> nextFreeEntry;
     std::atomic<Entry*>* hashTable;
@@ -75,10 +77,15 @@ class ChainingHT {
       entry->next = hashTable[bucketNr].exchange(entry);
     }
 
-    Range lookup(uint64_t key) const {
+    uint64_t lookup(uint64_t key) const {
       uint64_t hash = hashKey(key);
       uint64_t bucketNr = hash & keyBits;
-      Entry* chainStart = hashTable[bucketNr];
-      return Range(chainStart, key);
+      Entry* currentEntry = hashTable[bucketNr];
+      uint64_t cnt = 0;
+      while(currentEntry != nullptr) {
+        cnt += currentEntry->key == key;
+        currentEntry = currentEntry->next;
+      }
+      return cnt;
     }
 };

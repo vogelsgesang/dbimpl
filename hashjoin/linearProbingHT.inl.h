@@ -58,71 +58,14 @@ class LinearProbingHT {
       entries[bucketNr].value = value;
     }
 
-    //this class is just a marker type
-    class EndIterator {};
-
-    //this iterator is used to iterate over the results of a lookup
-    class RangeIterator {
-      public:
-        RangeIterator(Entry* entries, uint64_t keyBits, uint64_t bucketNr, uint64_t key)
-          : entries(entries), keyBits(keyBits), bucketNr(bucketNr), key(key) {}
-
-        uint64_t operator*() const {
-          return entries[bucketNr].value;
-        }
-
-        RangeIterator& operator++() {
-          do {
-            bucketNr = (bucketNr + 1) & keyBits;
-          } while(entries[bucketNr].occupied && entries[bucketNr].key != key);
-          return *this;
-        }
-
-        RangeIterator operator++(int) { RangeIterator r(*this); operator++(); return r; };
-
-        bool operator== (const EndIterator&) const {
-          return !entries[bucketNr].occupied;
-        }
-
-        bool operator!= (const EndIterator& rhs) const {
-          return !operator==(rhs);
-        }
-
-      private:
-        Entry* entries;
-        uint64_t keyBits;
-        uint64_t bucketNr;
-        uint64_t key;
-    };
-
-    //represents the results of a lookup
-    class Range {
-      public:
-        Range(Entry* entries, uint64_t keyBits, uint64_t startBucketNr, uint64_t key)
-        : entries(entries), keyBits(keyBits), bucketNr(startBucketNr), key(key) {
-          while(entries[bucketNr].occupied && entries[bucketNr].key != key) {
-            bucketNr = (bucketNr + 1) & keyBits;
-          }
-        }
-
-        RangeIterator begin() {
-          return RangeIterator(entries, keyBits, bucketNr, key);
-        }
-
-        EndIterator end() {
-          return EndIterator();
-        }
-
-      private:
-        Entry* entries;
-        uint64_t keyBits;
-        uint64_t bucketNr;
-        uint64_t key;
-    };
-
-    inline Range lookup(uint64_t key) {
+    inline uint64_t lookup(uint64_t key) {
       uint64_t hash = hashKey(key);
       uint64_t bucketNr = hash & keyBits;
-      return Range(entries, keyBits, bucketNr, key);
+      uint64_t cnt = 0;
+      while(entries[bucketNr].occupied) {
+        cnt += entries[bucketNr].key == key;
+        bucketNr = (bucketNr + 1) & keyBits;
+      }
+      return cnt;
     }
 };
