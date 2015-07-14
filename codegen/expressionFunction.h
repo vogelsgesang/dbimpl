@@ -14,11 +14,8 @@ namespace codegen {
   //represents a function which evaluates an expression and returns its result
   class ExpressionFunction {
     public:
-      ExpressionFunction(std::string functionName, std::unique_ptr<Expression>&& expression)
+      ExpressionFunction(std::string functionName, std::shared_ptr<Expression> expression)
         : functionName(functionName), expression(std::move(expression)) {}
-
-      ExpressionFunction(std::string functionName, Expression* expression)
-        : functionName(functionName), expression(expression) {}
 
 
       virtual Function* genCode(LLVMContext& ctx, Module& module) {
@@ -49,7 +46,7 @@ namespace codegen {
 
     private:
       std::string functionName;
-      std::unique_ptr<Expression> expression;
+      std::shared_ptr<Expression> expression;
   };
 
 }

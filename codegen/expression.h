@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <memory>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
@@ -59,18 +60,15 @@ namespace codegen {
 
   class UnaryExpression : public Expression {
     public:
-      explicit UnaryExpression(std::unique_ptr<Expression>&& operand)
+      explicit UnaryExpression(std::shared_ptr<Expression> operand)
         : operand(std::move(operand)) {}
-
-      explicit UnaryExpression(Expression* operand)
-        : operand(operand) {}
 
       virtual unsigned short argumentCount() {
         return operand->argumentCount();
       }
 
     protected:
-      std::unique_ptr<Expression> operand;
+      std::shared_ptr<Expression> operand;
   };
 
 
@@ -86,19 +84,16 @@ namespace codegen {
 
   class BinaryExpression : public Expression {
     public:
-      BinaryExpression(std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs)
+      BinaryExpression(std::shared_ptr<Expression> lhs, std::shared_ptr<Expression> rhs)
         : lhs(std::move(lhs)), rhs(std::move(rhs)) {}
-
-      BinaryExpression(Expression* lhs, Expression* rhs)
-        : lhs(lhs), rhs(rhs) {}
 
       virtual unsigned short argumentCount() {
         return std::max(rhs->argumentCount(), lhs->argumentCount());
       }
 
     protected:
-      std::unique_ptr<Expression> lhs;
-      std::unique_ptr<Expression> rhs;
+      std::shared_ptr<Expression> lhs;
+      std::shared_ptr<Expression> rhs;
   };
 
 
