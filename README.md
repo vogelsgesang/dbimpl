@@ -80,3 +80,12 @@ It uses the existing implemtation of the buffer manager to store its nodes.
 Concurrent access is provided by lock coupling.
 
 A simple CLI is available as `bin/btreeVisualizer`. The file `btreeVisualizer.input.txt` contains some example commands.
+
+#Code generation
+
+A code generator for arithmetic expressions can be found in the `codegen` folder.
+
+It provides classes for forming an operator tree, generating LLVM code out of this tree and executing it.
+
+It also contains a `MetaExpression` class which provides a more convenient interface for building
+the operator trees by using C++ operator overloading.
