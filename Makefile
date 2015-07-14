@@ -108,7 +108,7 @@ bin/btreeVisualizer$(BIN_SUFFIX): $(addprefix $(OBJ_DIR)/, $(BTREE_VISUALIZER_OB
 	@mkdir -p $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-EXPRESSION_JITTER_OBJ=codegen/test.o
+EXPRESSION_JITTER_OBJ=codegen/expressionJitter.o
 bin/expressionJitter$(BIN_SUFFIX): CXXFLAGS += $(shell llvm-config --cxxflags)
 bin/expressionJitter$(BIN_SUFFIX): LDFLAGS  += $(shell llvm-config --ldflags)
 bin/expressionJitter$(BIN_SUFFIX): LDLIBS   += $(shell llvm-config --libs all) -ldl -ltinfo -lz -lffi
